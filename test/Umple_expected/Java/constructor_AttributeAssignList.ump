@@ -1,0 +1,4 @@
+class UnitTest {
+    constructor_AttributeAssignList <<!<</*constructor_AttributeAssignList*/>>
+    <<=gen.translate("attributeMany",av)>> = new ArrayList<<<=gen.translate("typeMany",av)>>>();!>>
+}

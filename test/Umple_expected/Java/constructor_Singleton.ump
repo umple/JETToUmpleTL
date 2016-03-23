@@ -1,0 +1,11 @@
+class UnitTest {
+    constructor_Singleton <<!<</*constructor_Singleton*/>>
+  public static <<=uClass.getName()>> getInstance()
+  {
+    if(theInstance == null)
+    {
+      theInstance = new <<=uClass.getName()>>();
+    }
+    return theInstance;
+  }!>>
+}

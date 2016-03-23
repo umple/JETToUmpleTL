@@ -1,0 +1,26 @@
+use UmpleNotice.ump;
+use import_packages_interface.ump;
+
+
+class UnitTest {
+    rubyInterfaceGenerator <<!<</*rubyInterfaceGenerator*/>><<@ UnitTest.UmpleNotice >>
+<<#
+  UmpleInterface uInterface = (UmpleInterface) uElement;
+  // GeneratedInterface gInterface = uInterface.getGeneratedInterface();
+  RubyGenerator gen = new RubyGenerator();
+  gen.setModel(model);
+  
+  String extraCode = "";
+  if (uInterface.getExtraCode() != null)
+  {
+    extraCode = uInterface.getExtraCode();
+  }
+
+#>>
+
+<<=gen.translate("packageDefinition",uInterface)>><<@ UnitTest.import_packages_interface >>
+
+class <<=uInterface.getName()>>
+  <<=extraCode>>
+end!>>
+}

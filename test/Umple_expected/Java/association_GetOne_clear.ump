@@ -1,0 +1,8 @@
+class UnitTest {
+    association_GetOne_clear <<!<</*association_GetOne_clear*/>>
+  protected void clear_<<=gen.translate("associationOne",av)>>()
+  {
+    <<=gen.translate("associationOne",av)>> = null;
+  }
+!>>
+}

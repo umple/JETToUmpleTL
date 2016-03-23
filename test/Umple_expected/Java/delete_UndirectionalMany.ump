@@ -1,0 +1,4 @@
+class UnitTest {
+    delete_UndirectionalMany <<!<</*delete_UndirectionalMany*/>>
+    <<=gen.translate("associationMany",av)>>.clear();!>>
+}

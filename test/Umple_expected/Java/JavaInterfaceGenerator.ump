@@ -1,0 +1,32 @@
+use UmpleNotice.ump;
+use import_packages_interface.ump;
+use interface_AbstractMethodDeclaration.ump;
+use interface_constantDeclaration.ump;
+
+
+class UnitTest {
+    JavaInterfaceGenerator <<!<</*JavaInterfaceGenerator*/>><<@ UnitTest.UmpleNotice >>
+<<#
+  UmpleInterface uInterface = (UmpleInterface) uElement;
+  //GeneratedInterface gInterface = uInterface.getGeneratedInterface();
+  JavaGenerator gen = new JavaGenerator();
+  gen.setModel(model);
+
+  String extraCode = "";
+  if (uInterface.getExtraCode() != null)
+  {
+    extraCode = uInterface.getExtraCode();
+  }
+
+#>>
+<<=gen.translate("packageDefinition",uInterface)>><<@ UnitTest.import_packages_interface >>
+
+public interface <<=uInterface.getName()>><<= gen.translate("isA",uInterface) >>
+{
+  <<=extraCode>>
+<<# if (uInterface.hasConstants()) { #>><<@ UnitTest.interface_constantDeclaration >>
+<<# } #>>
+ <<# if (uInterface.hasMethods()) { #>><<@ UnitTest.interface_AbstractMethodDeclaration >>
+<<# } #>>
+}!>>
+}

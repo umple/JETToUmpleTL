@@ -1,0 +1,30 @@
+use UmpleNotice.ump;
+use interface_AbstractMethodDeclaration.ump;
+use interface_constantDeclaration.ump;
+
+
+class UnitTest {
+    phpInterfaceGenerator <<!<</*phpInterfaceGenerator*/>><<#
+  UmpleInterface uInterface = (UmpleInterface) uElement;
+  // GeneratedInterface gInterface = uInterface.getGeneratedInterface();
+  PhpGenerator gen = new PhpGenerator();
+  gen.setModel(model);
+  
+  String extraCode = "";
+  if (uInterface.getExtraCode() != null)
+  {
+    extraCode = uInterface.getExtraCode();
+  }  
+#>>
+<?php<<@ UnitTest.UmpleNotice >>
+
+interface <<= uInterface.getName() >>
+{
+<<# if (uInterface.hasConstants()) { #>><<@ UnitTest.interface_constantDeclaration >>
+<<# } #>>
+ <<# if (uInterface.hasMethods()) { #>><<@ UnitTest.interface_AbstractMethodDeclaration >>
+<<# } #>>
+  <<=extraCode>>
+}
+?>!>>
+}

@@ -1,0 +1,4 @@
+class UnitTest {
+    constructor_AttributeUnassignedImmutable <<!<</*constructor_AttributeUnassignedImmutable*/>>
+    $this-><<=gen.translate("attributeCanSet",av)>> = true;!>>
+}

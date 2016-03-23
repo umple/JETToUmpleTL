@@ -1,0 +1,4 @@
+class UnitTest {
+    constructor_NestedStateMachineAssignDefault <<!<</*constructor_NestedStateMachineAssignDefault*/>>
+    <<=gen.translate("setMethod",nestedSm)>>(<<=gen.translate("type",nestedSm)>>.<<=gen.translate("stateNull",nestedSm)>>)  if <<=gen.translate("stateMachineOne",sm)>>.nil?!>>
+}

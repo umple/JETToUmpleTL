@@ -1,0 +1,89 @@
+use UmpleNotice.ump;
+use association_Get_All.ump;
+use association_Set_All.ump;
+use attribute_Get_All.ump;
+use attribute_IsBoolean_All.ump;
+use attribute_Set_All.ump;
+use class_MethodDeclaration.ump;
+use constructor_Declare_All.ump;
+use delete_All.ump;
+use equals.ump;
+use import_packages.ump;
+use members_AllAssociations.ump;
+use members_AllAttributes.ump;
+use members_AllDoActivities.ump;
+use members_AllHelpers.ump;
+use members_AllStateMachines.ump;
+use members_AllStatics.ump;
+use state_machine_Events_All.ump;
+use state_machine_Get_All.ump;
+use state_machine_Set_All.ump;
+use state_machine_doActivity_All.ump;
+use state_machine_timedEvent_All.ump;
+
+
+class UnitTest {
+    rubyClassGenerator <<!<</*rubyClassGenerator*/>><<@ UnitTest.UmpleNotice >>
+<<#
+  UmpleClass uClass = (UmpleClass) uElement;
+  GeneratedClass gClass = uClass.getGeneratedClass();
+  RubyGenerator gen = new RubyGenerator();
+  GeneratorHelper.generator = gen;
+  gen.setModel(model);
+
+  HashMap<String,String> codeInjectionMap = new HashMap<String,String>();
+  for (CodeInjection inject : uClass.getCodeInjections())
+  {
+    String operation = StringFormatter.toUnderscore(inject.getOperation());
+    String key = inject.getType() + ":" + operation;
+    String newCodeToInject = "";
+    String injectCode = inject.getConstraintTree()==null?inject.getCode():inject.getConstraintCode(gen);
+    if (codeInjectionMap.containsKey(key))
+    {
+      newCodeToInject = StringFormatter.format("{0}\n    {1}",codeInjectionMap.get(key),injectCode);
+    }
+    else
+    {
+      newCodeToInject = injectCode;
+    }
+    codeInjectionMap.put(key,newCodeToInject);
+  }
+
+  boolean isFirst = true;
+
+#>>
+
+<<=gen.translate("packageDefinition",uClass)>><<@ UnitTest.import_packages >>
+
+
+<<# if (uClass.numberOfComments() > 0) { if(!uClass.getComments().get(0).getIsInline()) {append(realSb, "\n{0}", Comment.format("RubyMultiline",uClass.getComments()));} else { append(realSb, "\n{0}", Comment.format("Hash",uClass.getComments()));} } #>>
+class <<=uClass.getName()>><<= gen.translate("isA",uClass) >>
+<<@ UnitTest.members_AllStatics >><<@ UnitTest.members_AllAttributes >><<@ UnitTest.members_AllStateMachines >><<@ UnitTest.members_AllDoActivities >><<@ UnitTest.members_AllAssociations >><<@ UnitTest.members_AllHelpers >>
+
+
+<<# if (!uClass.getIsSingleton()) { #>>
+  #------------------------
+  # CONSTRUCTOR
+  #------------------------
+<<@ UnitTest.constructor_Declare_All >>
+
+
+<<# } #>>
+  #------------------------
+  # INTERFACE
+  #------------------------
+<<@ UnitTest.attribute_Set_All >><<@ UnitTest.attribute_Get_All >><<@ UnitTest.attribute_IsBoolean_All >><<@ UnitTest.state_machine_Get_All >><<@ UnitTest.state_machine_Events_All >><<@ UnitTest.state_machine_Set_All >><<@ UnitTest.association_Get_All >><<@ UnitTest.association_Set_All >>
+<<# if (uClass.getKey().isProvided()) { #>><<@ UnitTest.equals >>
+<<# } #>><<@ UnitTest.state_machine_doActivity_All >><<@ UnitTest.state_machine_timedEvent_All >><<@ UnitTest.delete_All >>
+  <<# if (uClass.hasMethods()) { #>><<@ UnitTest.class_MethodDeclaration >>
+  <<# } #>>
+<<# if (uClass.getExtraCode() != null && uClass.getExtraCode().length() > 0) { #>>
+  #------------------------
+  # DEVELOPER CODE - PROVIDED AS-IS
+  #------------------------
+  
+  <<=uClass.getExtraCode()>>
+<<# } #>>
+end
+<<=gen.translate("packageDefinitionEnd",uClass)>>!>>
+}

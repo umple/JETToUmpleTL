@@ -1,0 +1,8 @@
+<%@ jet package="cruise.umple.ignore" class="Ignore"%>
+    }<% // Immediately after %>
+    }
+<% // Following line %>
+    }
+
+<% // Two lines after %>
+Doesn't depend on what occurs here, so can have whatever I want <% // Lala %>

@@ -1,0 +1,7 @@
+class UnitTest {
+    constructor_AttributeAssignImmutable <<!<</*constructor_AttributeAssignImmutable*/>><<#
+  String parameterLookup = av.getValue() == null ? "parameterOne" : "parameterValue";
+#>>
+    @<<=gen.translate("attributeOne",av)>> = <<=gen.translate(parameterLookup,av)>>
+    @<<=gen.translate("attributeCanSet",av)>> = false!>>
+}

@@ -1,0 +1,11 @@
+class UnitTest {
+    braceFollowedByCode <<!<</*braceFollowedByCode*/>>
+    }<<# // Immediately after #>>
+    }
+<<# // Following line #>>
+    }
+
+
+<<# // Two lines after #>>
+Doesn't depend on what occurs here, so can have whatever I want <<# // Lala #>>!>>
+}
