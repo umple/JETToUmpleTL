@@ -2,7 +2,7 @@
 
 This project is meant to automatically convet JET templates to their equivalent in Umple.
 
-This converter should handle around 95% of the conversion, although it will not handle everything. See (#Hand-Conversions) for suggestions on how to finish a conversion by hand. Due to the minute differences between Umple and JET, it is strongly recommeneded to have a solid test suite before converting. The converter is written in a mix of Umple and Java.
+This converter should handle most of the conversion, although it will not handle everything. See [#Hand-Conversions]() for suggestions on how to finish a conversion by hand. Due to the minute differences between Umple and JET, it is strongly recommeneded to have a solid test suite before converting. The converter is written in a mix of Umple and Java.
 
 For an introduction to Umple templates, see the documentation for [Umple`s templates](http://cruise.eecs.uottawa.ca/umple/BasicTemplates.html) and a guide for the differences between Umple and JET (will be added by end of term).
 
