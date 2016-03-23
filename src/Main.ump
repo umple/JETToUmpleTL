@@ -1,0 +1,551 @@
+namespace cruise.umple.fromjet;
+
+class Main {
+	depend java.nio.file.Path;
+	depend java.nio.file.Paths;
+	
+	public static void main(String[] args) {
+		
+		Path path = Paths.get(args[0]);
+		System.out.println(path.toString());
+		DirectoryConverter converter = new DirectoryConverter(path, args[2]);
+		
+		converter.convertDirectory(Paths.get(args[1]));
+	};
+}
+
+// NOTE: Assumes that .jumpjet generates a class, and .jet generates a template that will be placed in other templates
+class DirectoryConverter {
+	depend java.io.*;
+	depend java.nio.file.Path;
+	depend java.nio.file.Paths;
+	depend java.util.*;
+	
+	internal Path directory;
+	internal Map<String, TemplateConverter> templates = new HashMap<String, TemplateConverter>();
+	
+	// Makes it easier to set up
+	internal String mainClassToStore;
+	
+	public void convertDirectory(Path saveTo) {
+		loadBasicTemplates();
+		
+		saveTo.toFile().mkdirs();
+		
+		for (Map.Entry<String, TemplateConverter> fileNameTemplate : templates.entrySet()) {
+			String name = fileNameTemplate.getKey();
+			
+			try {
+				//System.out.println("Save to " + saveTo.resolve(name + ".ump"));
+				fileNameTemplate.getValue().save(saveTo.resolve(name + ".ump"), name, mainClassToStore);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	private void loadBasicTemplates() {
+		File dir = new File(directory.toAbsolutePath().toString());
+	    System.out.println(dir.toString());
+	  	File[] directoryListing = dir.listFiles();
+	  	if (directoryListing != null) {
+	    	for (File child : directoryListing) {
+	    		String name = child.getName();
+				String extension = "";
+			
+		    	if (name.indexOf('.') != -1) {
+					extension = name.substring(name.indexOf('.') + 1);
+					name = name.substring(0, name.indexOf('.'));
+				}
+				
+				if (!extension.equals("jet") && !extension.equals("jumpjet")) {
+					continue;
+				}
+			
+			 	
+	      		System.out.println(child.toString());
+	      		TemplateConverter template = new TemplateConverter(child.toString(), name);
+	      		template.convert();
+	      		templates.put(name, template);
+	    	}
+	    } else {
+	    	// TODO: Handle this case...
+	    	System.out.println("No directory...");
+	    }
+	}
+}
+
+class TemplateConverter {
+	depend java.nio.file.Path;
+	depend java.io.*;
+	
+	internal String[] imports;
+	
+	internal path;
+	internal templateName;
+	internal TemplateElement[] elements;
+	
+	const String NewLine = System.getProperties().getProperty("line.separator");
+	
+	private enum Operation {
+		Expression, Directive, Code, Text, None
+	};
+	
+	public void convert() {
+		elements.clear();
+		try (BufferedReader br = new BufferedReader(new FileReader(path))) {
+		
+			elements.add(new BasicElement("<</*" + templateName + "*/>>"));
+		
+			parse(br);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void save(Path saveTo, String templateName, String mainClassToStore) throws FileNotFoundException{
+		// TODO: Most of this shouldn't be in this class
+		// TODO: What about ones that are supposed to have their emit?
+		try (PrintWriter out = new PrintWriter(saveTo.toString())){
+			
+			out.write(getPreClassText());
+			out.println("class " + mainClassToStore + " {");
+			out.write("    " + templateName + " <<!");
+			
+	    	out.write(getTemplateText(mainClassToStore));
+			
+			out.println("!>>");
+			out.println("}");
+		}
+		
+	}
+	
+	public String getPreClassText() {
+		HashSet<String> allDependencies = new HashSet<String>();
+		
+		// Remove duplicates by using a HashSet
+		for (TemplateElement element : elements) {
+			String template = element.getDependencyTemplate();
+			
+			if (!template.equals("")) {
+				allDependencies.add(template);
+			}
+		}
+		
+		// Sort them to make it easier to read
+		List<String> dependencies = new ArrayList<String>(allDependencies);
+		Collections.sort(dependencies);
+		
+		StringBuilder sb = new StringBuilder();
+		for (String template : dependencies) {
+			// TODO: Should format
+			sb.append("use " + template + ".ump;" + NewLine);
+		}
+		
+		if (dependencies.size() != 0) {
+			sb.append(NewLine + NewLine);
+		}
+		
+		return sb.toString();
+	}
+	
+	public String getTemplateText(String mainClassToStore) {
+		StringBuilder sb = new StringBuilder();
+		for (TemplateElement element : elements) {
+			sb.append(element.getAsString(mainClassToStore));
+		}
+		
+		return sb.toString();
+	}
+	
+	private void parse(BufferedReader bufferedReader) throws IOException {
+		// For now, ignore the package
+		// TODO: Parse first line
+		// For now, will just skip to the end
+		String rest = bufferedReader.readLine();
+		rest = rest.substring(rest.indexOf("%>") + "%>".length());
+		
+		// If the first line is just for the jet directive, and the next line starts with a code or directive block
+		   // then not add a new line
+		// Also, remove any extra spaces
+		if (rest.equals("")) {
+			rest = bufferedReader.readLine();
+			
+			// Should handle this a different way, maybe from a return
+			if (rest == null) {
+				return;
+			}
+			
+			boolean startsWithCodeOrDirective = false;
+			Operation operation = operationStartingOnLine(rest);
+			int pos = rest.indexOf("<%");
+			
+			if (operation == Operation.Code || operation == Operation.Directive) {
+				startsWithCodeOrDirective = containsOnlySpaces(rest.substring(0, pos));
+			}
+			
+			if (startsWithCodeOrDirective) {
+				rest = rest.substring(pos);
+			} else {
+				elements.add(new BasicElement(NewLine));
+			}
+		}
+	
+		Operation previousOp = Operation.None;
+		
+		// Rest is for the rest of the file
+		while (rest != null) {
+			Operation currentOp = getStartingOperation(rest);
+			switch (currentOp) {
+				case Expression:
+					rest = parseExpressionBlock(bufferedReader, rest);
+					break;
+					
+				case Directive:
+					// parseDirective -> Right now, just handle 'include file="<template>"
+					rest = parseDirectiveBlock(bufferedReader, rest);
+					break;
+					
+				case Code:
+					rest = parseCodeBlock(bufferedReader, rest);
+					break;
+					
+				default:
+					rest = parsePureText(bufferedReader, rest, previousOp);
+					break;
+			}
+			
+			previousOp = currentOp;
+		}
+	}
+	
+	private String parseExpressionBlock(BufferedReader bufferedReader, String restOfLine) throws IOException {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append("<<=");
+		
+	   	String line = restOfLine.substring("<%=".length());
+		
+		// Read all full lines first
+		while (!operationIsFinished(line, "%>")) {
+			buffer.append(line);
+			line = bufferedReader.readLine();
+			if (shouldAppendNewline(line, Operation.Expression)) {
+				buffer.append(NewLine);
+			}
+		}
+		
+		if (line != null)
+		{
+			int indexOf = line.indexOf("%>");
+			
+			buffer.append(line.substring(0, indexOf));
+			line = line.substring(indexOf + "%>".length());
+		}
+
+		buffer.append(">>");
+		elements.add(new BasicElement(buffer.toString()));
+		
+		return line;
+	}
+	
+	private String parseDirectiveBlock(BufferedReader bufferedReader, String restOfLine) throws IOException {
+		int toSkip = "<%@".length() + 1;
+		while (restOfLine.charAt(toSkip) == ' ') {
+			++toSkip;
+		}
+
+	   	String line = restOfLine.substring(toSkip);
+	   	
+	   	// Currently the only directive handled
+	   	if (line.startsWith("include")) {
+	   		// TODO: The included file always starts with a " right?
+	   		int start = line.indexOf('"') + 1;
+	   		int end = line.indexOf('.', start);
+	   		
+	   		elements.add(new ImportElement(line.substring(start, end)));
+	   	} else {
+	   		System.out.printf("Warning, the directive %s is not currently handledn", line.split(" ")[0]);
+	   		System.out.println(restOfLine);
+	   	}
+	   		
+		
+		// Handle any possible multi-line directives
+		while (!operationIsFinished(line, "%>")) {
+			line = bufferedReader.readLine();
+		}
+		
+		if (line != null) {
+			line = line.substring(line.indexOf("%>") + "%>".length());
+		}
+		
+		return line;
+	}
+	
+	private String parseCodeBlock(BufferedReader bufferedReader, String restOfLine) throws IOException {
+		StringBuffer buffer = new StringBuffer();
+		
+		buffer.append("<<#");
+		
+	   	String line = restOfLine.substring("<%".length());
+		if (line != null) {
+			line = line.replaceAll("stringBuffer", "realSb");
+		}
+			
+		// Read all full lines first
+		while (!operationIsFinished(line, "%>")) {
+			buffer.append(line);
+			line = bufferedReader.readLine();
+			if (shouldAppendNewline(line, Operation.Code)) {
+				buffer.append(NewLine);
+			}
+			if (line != null) {
+				line = line.replaceAll("stringBuffer", "realSb");
+			}
+		}
+		
+		if (line != null)
+		{
+			int indexOf = line.indexOf("%>");
+		
+			buffer.append(line.substring(0, indexOf));
+			line = line.substring(indexOf + "%>".length());
+		}
+
+		buffer.append("#>>");
+		
+		elements.add(new BasicElement(buffer.toString()));
+		
+		return line;
+	}
+	
+	private String parsePureText(BufferedReader bufferedReader, String restOfLine, Operation previousOp) throws IOException {
+		StringBuffer buffer = new StringBuffer();
+		String line = restOfLine, previousLine = null;
+		
+		// TODO: Better name....
+		boolean otherHadFunctionEnder = false;
+		
+		// TODO: For the code block ends
+		boolean onlySpaces = true;
+		
+		String before = line;
+		line = line.replaceAll("\t", "    ");
+		if (!before.equals(line)) {
+			System.out.println("Warning: Contains tab");
+		}
+		
+		// Read all full lines first
+		while (!operationIsFinished(line, "<%")) {
+			if (!containsOnlySpaces(line)) {
+				onlySpaces = false;
+			}
+			
+			buffer.append(line);
+			otherHadFunctionEnder = containsFunctionEnderAtEnd(previousLine);
+			//System.out.println(previousLine + ": " + otherHadBrace);
+			previousLine = line;
+			
+			line = bufferedReader.readLine();
+			if (shouldAppendNewline(line, Operation.Text)) {
+				buffer.append(NewLine);
+			}
+			
+			if (line != null) {
+				before = line;
+				line = line.replaceAll("\t", "    ");
+				if (!before.equals(line)) {
+					System.out.println("Warning: Contains tab");
+				}
+			}
+		}
+		
+		// If the final line of file contans only spaces, remove it completely
+			// And remove the newline before it (separately though)
+			// Because JET will not include it, but ours will
+			// Fixes constructor_StateMachineAssignDefault
+		if (line == null && containsOnlySpaces(previousLine)) {
+			// TODO: Make it more obvious what this depends on
+			int index = buffer.lastIndexOf(previousLine);
+			if (index >= 0 && !otherHadFunctionEnder && !(onlySpaces && previousOp == Operation.Code)) {
+				buffer.delete(index, buffer.length());
+				
+				// Then, need to delete the newline before it, if it exists
+				// But only if there wasn't a brace at the end
+				index = buffer.lastIndexOf(NewLine);
+				if (index != -1) {
+					buffer.delete(index, buffer.length());
+				}
+			}
+			
+			// Should keep this in, since may indicate odd spacing
+			if (otherHadFunctionEnder && !previousLine.equals("")) {
+				// TODO: Isn't if it originally had a tab
+				System.out.println("Has the odd end");
+			}
+		}
+		
+		if (line != null)
+		{
+			line = cutOffExtra(line);
+			
+			int indexOfNextPart = line.indexOf("<%");
+			String earlierPartOfLine = line.substring(0, indexOfNextPart);
+			line = line.substring(indexOfNextPart);
+			
+			buffer.append(earlierPartOfLine);
+			
+			// TODO: Explain the special case
+			// These should be based around ensuring that there are enough lines separating (increase to two)
+			// For when leading into a Code operation only
+			Operation nextOperation = getStartingOperation(line);
+			if (nextOperation == Operation.Code && previousLine != null) {
+				
+				// If leads into a <%, and there was a bracket on this line, with a blank line and a half, then add new line
+				if (otherHadFunctionEnder && containsOnlySpaces(previousLine) && containsOnlySpaces(earlierPartOfLine)) {
+					buffer.append(NewLine);
+				}
+			}
+			
+			// If there are only two lines, one ending on the previous guy, and they are separated by spaces, then need to add extra.
+				// Occurs in JavaClassGenerator, line 183
+			if (nextOperation == Operation.Code && previousLine != null) {
+				String generated = buffer.toString();
+				int numNewlines = (generated.length() - generated.replace(NewLine, "").length()) / NewLine.length();
+				if (containsOnlySpaces(previousLine) && (previousOp == Operation.Code || previousOp == Operation.Directive || previousOp == Operation.Expression) && numNewlines == 2) {
+					buffer.append(NewLine);
+				}
+			}
+		}
+		
+		elements.add(new BasicElement(buffer.toString()));
+		
+		return line;
+	}
+	
+	private boolean operationIsFinished(String line, String ender) {
+		return line == null || line.indexOf(ender) != -1;
+	}
+	
+	// Should be used to check what specific operation is started on the line.
+	private Operation operationStartingOnLine(String line) {
+		int indexOfStart = line.indexOf("<%");
+		if (indexOfStart != -1) {
+			return getStartingOperation(line.substring(indexOfStart));
+		}
+		
+		return Operation.Text;
+	}
+	
+	private Operation getStartingOperation(String line) {
+		if (line.startsWith("<%=")) {
+			return Operation.Expression;
+		} else if (line.startsWith("<%@")) {
+			return Operation.Directive;
+		} else if (line.startsWith("<%")) {
+			return Operation.Code;
+		} else {
+			return Operation.Text;
+		}
+	}
+	
+	private boolean containsFunctionEnderAtEnd(String line) {
+		if (line == null) {
+			return false;
+		}
+		
+		int braceIndex = line.indexOf("}");
+		if (braceIndex != -1) {
+			// Dont care about what is before the brace
+			String braceSubstr = line.substring(braceIndex);
+			if (braceSubstr.trim().equals("}")) {
+				return true;
+			}
+		}
+
+		// For Ruby
+		int endIndex = line.indexOf("end");
+		if (endIndex != -1) {
+			// Dont care about what is before the brace
+			String endSubstr = line.substring(endIndex);
+			if (endSubstr.trim().equals("end")) {
+				return true;
+			}
+			
+		}
+		
+		return false;
+	}
+	
+	// Hack for include
+	private String cutOffExtra(String line) {
+		// Means has whitespace followed by '<%@'
+		if (line != null && !shouldAppendNewline(line, Operation.Text)) {
+			line = line.substring(line.indexOf("<%@"));
+		}
+		
+		return line;
+	}
+	
+	private boolean containsOnlySpaces(String line) {
+		for (int i = 0; i < line.length(); ++i) {
+			if (line.charAt(i) != ' ') {
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	private boolean shouldAppendNewline(String line, Operation operation) {
+		if (line == null) {
+			return false;
+		}
+		
+			// Hack
+		int pos = line.indexOf("<%@");
+		
+		for (int i = 0; i < pos; ++i) {
+			if (line.charAt(i) != ' ')
+				return true;
+		}
+		
+		
+		return pos == -1;
+	}
+}
+
+interface TemplateElement {
+	String getAsString(String mainClassToStore);
+	
+	String getDependencyTemplate();
+}
+
+class BasicElement {
+	isA TemplateElement;
+	
+	public String getAsString(String mainClassToStore) {
+		return text;
+	}
+	
+	public String getDependencyTemplate() {
+		return "";
+	}
+	
+	String text;
+}
+
+class ImportElement {
+	isA TemplateElement;
+	
+	public String getAsString(String mainClassToStore) {
+		// Should be changed to a format
+		return "<<@ " + mainClassToStore + '.' + templateRequired + " >>";
+	}
+	
+	public String getDependencyTemplate() {
+		return templateRequired;
+	}
+	
+	String templateRequired;
+}
