@@ -103,7 +103,9 @@ It will be compiled into `cruise/umple/fromjet`
 
 ## Development
 
-The easiest way to be able to change the code for this is to use Eclipse, after installing the [Umple Development Setup](https://github.com/umple/umple/wiki/DevelopmentSetUp) and the [Umple Eclipse Plugin](https://github.com/umple/umple/wiki/InstallEclipsePlugin)
+The easiest way to be able to change the code for this is to use Eclipse, after installing the [Umple Development Setup](https://github.com/umple/umple/wiki/DevelopmentSetUp) and the [Umple Eclipse Plugin](https://github.com/umple/umple/wiki/InstallEclipsePlugin).
+
+All issues should be reported to the main [umple repository](https://github.com/umple/Umple).
 
 
 ### Tests
