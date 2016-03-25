@@ -1,0 +1,6 @@
+class UnitTest {
+    ignoreFinalBlankLine_sourcecode_isnt_blank <<!<</*ignoreFinalBlankLine_sourcecode_isnt_blank*/>>
+// Should include the last line
+Some nice and innocent source code
+Hi   !>>
+}

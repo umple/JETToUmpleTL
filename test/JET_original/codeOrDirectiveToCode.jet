@@ -1,0 +1,12 @@
+<%@ jet package="cruise.umple.compiler.java" %>
+
+// First case is an import followed by a blank line then code
+<%@ include file="fake_file.jet" %>
+
+<% // Magical code %>
+
+// The second case is code followed by a blank line then code
+<% // First code part %>
+
+<% // End of code part %>
+// And it shouldn't depend on this part at all

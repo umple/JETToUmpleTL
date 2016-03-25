@@ -1,0 +1,4 @@
+class UnitTest {
+    templateStartingWithCode <<!<</*templateStartingWithCode*/>><<# // A nice code piece #>>
+// Should put the above line in the very beginning, rather than keep the newline!>>
+}

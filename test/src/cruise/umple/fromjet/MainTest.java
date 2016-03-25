@@ -23,6 +23,7 @@ public class MainTest {
 	private static final String phpTestFolder = "Php";
 	private static final String javaTestFolder = "Java";
 	private static final String rubyTestFolder = "Ruby";
+	private static final String invalidTemplatesTestFolder = "InvalidTemplates";
 
 	@BeforeClass
 	public static void convertAll() {
@@ -45,17 +46,17 @@ public class MainTest {
 	// The following tests are special tests for specific setups
 	@Test
 	public void testTemplateIgnoreFinalBlankLine() {
-		checkTemplate("constructor_StateMachineAssignDefault.ump");
+		checkTemplate("ignoreFinalBlankLine_code.ump");
+		checkTemplate("ignoreFinalBlankLine_include.ump");
+		checkTemplate("ignoreFinalBlankLine_sourcecode_isnt_blank.ump");
+		checkTemplate("ignoreFinalBlankLine_sourcecode.ump");
 	}
 	
 	@Test
-	public void testTemplateConvertCodeStatements() {
-		checkTemplate("members_AllHelpers.ump");
-	}
-	
-	@Test
-	public void testTemplateEndingBrace() {
-		checkTemplate("attribute_Set_subclass.ump");
+	public void testTemplateFunctionEnder() {
+		checkTemplate("braceWithBlankLine.ump");
+		checkTemplate("endWithBlankLine.ump");
+		checkTemplate("braceWithoutBlankLine.ump");
 	}
 	
 	@Test
@@ -64,20 +65,14 @@ public class MainTest {
 	}
 	
 	@Test
-	public void testTemplateCodeFollowedBySpaceThenText() {
-		checkTemplate("association_GetOne.ump");
-	}
-	
-	@Test
 	public void testImmediateTemplateCodeWithSpace() {
-		checkTemplate("association_SetUnidirectionalOptionalOne.ump");
+		checkTemplate("templateStartingWithCode.ump");
+		checkTemplate("templateStartingWithSpaceThenCode.ump");
 	}
 	
 	@Test
 	public void testTemplateCodeOrDirectiveToCode() {
-		// This checks if the template will add an extra space between them
-		checkTemplate("phpClassGenerator.ump");
-		checkTemplate("JavaClassGenerator.ump");
+		checkTemplate("codeOrDirectiveToCode.ump");
 	}
 	
 	// Mass tests
@@ -91,10 +86,15 @@ public class MainTest {
 		testAllInFolder(javaTestFolder);
 	}
 	
-	// Mass tests
 	@Test
 	public void testTemplatesRuby() {
 		testAllInFolder(rubyTestFolder);
+	}
+	
+	@Test
+	public void testInvalidTemplates() {
+		// The tests in this are odd, where the expected generated output is no output at all
+		testAllInFolder(invalidTemplatesTestFolder);
 	}
 	
 	private void testAllInFolder(String folder) {
@@ -118,7 +118,7 @@ public class MainTest {
 	    		checkTemplate(child.getName());
 	    	}
 	    } else {
-	    	fail("Directory should not be empty");
+	    	fail("Directory " + folder + " should exist");
 	    }
 		
 	  	// Ensure each file in the created directory was expected

@@ -1,0 +1,5 @@
+class UnitTest {
+    ignoreFinalBlankLine_include <<!<</*ignoreFinalBlankLine_include*/>>
+// Should not include the final line
+<@ include file="fake_file.jet" %>!>>
+}

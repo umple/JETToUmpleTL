@@ -1,0 +1,4 @@
+class UnitTest {
+    basic_template <<!<</*basic_template*/>>
+// This template is just to ensure that the folder for non-existent is create properly!>>
+}

@@ -1,0 +1,6 @@
+class UnitTest {
+    ignoreFinalBlankLine_code <<!<</*ignoreFinalBlankLine_code*/>>
+// Should include the blank line.
+<<# // Highly important code #>>
+  !>>
+}

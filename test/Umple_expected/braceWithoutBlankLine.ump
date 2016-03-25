@@ -1,0 +1,5 @@
+class UnitTest {
+    braceWithoutBlankLine <<!<</*braceWithoutBlankLine*/>>
+// Should just end with the brace
+  }!>>
+}
