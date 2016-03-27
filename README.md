@@ -31,11 +31,12 @@ There are currently quite a few conversions that are not yet handled, but should
 
 Some others I do not intend on implenting, due to taking too much time. As well, there are also likely to be other differences, due to the many special cases in JET that do not exist in Umple templates.
 
+Warning: If there is a template called "Master.ump" it will be overridden.
+
 ### Master.ump
 
-This file will be the file that, when ran with the release version of Umple, will compile all the templates. It will be created automatically.
+This file will be the file that, when ran with the release version of Umple, will compile all the templates. It is created automatically. However, you will need to choose the path that the templates will be created into. Each class will be put into a subdirectory in the given path corresponding to the package.
 
-Until it is created automatically, hoewver, first create the file `Master.ump`. In it, add `generate Java "<directory to generate into>"`
     EG: `generate Java "../src-gen-UmpleTL"`
 
 ### `.jumpjet` files

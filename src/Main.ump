@@ -26,7 +26,8 @@ class DirectoryConverter {
 	depend java.util.*;
 	
 	internal Path directory;
-	internal Map<String, TemplateConverter> templates = new HashMap<String, TemplateConverter>();
+	internal Set<String> emittedTemplates = new HashSet<>();
+	internal Map<String, TemplateConverter> templates = new HashMap<>();
 	
 	// Makes it easier to set up
 	internal String mainClassToStore;
@@ -34,19 +35,7 @@ class DirectoryConverter {
 	public void convertDirectory(Path saveTo) {
 		loadTemplates();
 		
-		saveTo.toFile().mkdirs();
-		
-		for (Map.Entry<String, TemplateConverter> fileNameTemplate : templates.entrySet()) {
-			String name = fileNameTemplate.getKey();
-			
-			try {
-				//System.out.println("Save to " + saveTo.resolve(name + ".ump"));
-				fileNameTemplate.getValue().save(saveTo.resolve(name + ".ump"), name, mainClassToStore);
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
+		saveTemplates(saveTo);
 	}
 	
 	private void loadTemplates() {
@@ -70,6 +59,10 @@ class DirectoryConverter {
 			 	
 	      		TemplateConverter template = new TemplateConverter(directory, child.toString(), name, extension.equals("jumpjet"));
 	      		
+	      		if (extension.equals("jumpjet")) {
+	      			emittedTemplates.add(name);
+	      		}
+	      		
 	      		// If it is a valid template file
 	      		if (template.convert()) {
 	      			templates.put(name, template);
@@ -79,6 +72,41 @@ class DirectoryConverter {
 	    	// TODO: Handle this case...
 	    	System.out.println("No directory...");
 	    }
+	}
+	
+	private void saveTemplates(Path saveTo) {
+		saveTo.toFile().mkdirs();
+		
+		// Save the templates first
+		for (Map.Entry<String, TemplateConverter> fileNameTemplate : templates.entrySet()) {
+			String name = fileNameTemplate.getKey();
+			
+			try {
+				//System.out.println("Save to " + saveTo.resolve(name + ".ump"));
+				fileNameTemplate.getValue().save(saveTo.resolve(name + ".ump"), name, mainClassToStore);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		// Save the Master.ump file
+		if (emittedTemplates.size() != 0) {
+			Path masterFilePath = saveTo.resolve("Master.ump");
+			
+			// Check to see if it exists, and give a warning if it does
+			File masterFile = saveTo.resolve("Master.ump").toFile();
+			if (masterFile.exists()) {
+				System.out.println("WARNING: The file Master.ump will be overwritten. Please change its name\n");
+			}
+			
+			
+			try (PrintWriter out = new PrintWriter(masterFilePath.toString())){
+				out.write(new FileGenerators().generateMasterUmpFile(new ArrayList<String>(emittedTemplates)));
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }
 

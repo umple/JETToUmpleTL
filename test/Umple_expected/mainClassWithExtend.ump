@@ -1,0 +1,23 @@
+external interface ILang {}
+external OtherClass {}
+
+
+class ClassWithExtend {
+    depend cruise.umple.compiler.*;
+    depend cruise.umple.util.*;
+    depend java.util.*;
+
+
+    isA ILang;
+    isA OtherClass;
+
+
+
+    // TODO: Replace <lastFunctionName> with the name of the function that is above this. Replace arguments as well.
+        // That function can be removed
+    emit <lastFunctionName>(arguments...)(mainClassWithExtend);
+
+
+    mainClassWithExtend <<!<</*mainClassWithExtend*/>>
+// The template isn't the interesting part!>>
+}

@@ -78,6 +78,7 @@ public class MainTest {
 	@Test
 	public void testTemplateSkeleton() {
 		checkTemplate("mainClassWithExtend.ump");
+		checkTemplate("Master.ump");
 	}
 	
 	// Mass tests

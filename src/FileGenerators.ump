@@ -2,6 +2,17 @@ namespace cruise.umple.fromjet;
 
 class FileGenerators {
 	depend java.util.*;
+	
+	// compiledTemplates should be all of the templates that are top files
+	// Most likely just .jumpjet files
+	emit generateMasterUmpFile(List<String> compiledTemplates)(generateMasterUmpFile);
+	
+	generateMasterUmpFile <<!// TODO: Choose path
+generate Java "path"
+
+<<# for (String template : compiledTemplates) {#>>
+use <<=template>>.ump;
+<<#}#>>!>>
 
 	emit generateClassFileDependencies(List<String> dependencies)(generateClassFileDependencies);
 	

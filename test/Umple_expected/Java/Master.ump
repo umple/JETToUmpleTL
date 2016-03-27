@@ -1,0 +1,6 @@
+// TODO: Choose path
+generate Java "path"
+
+use JavaInterfaceGenerator.ump;
+use JavaSpecGenerator.ump;
+use JavaClassGenerator.ump;
