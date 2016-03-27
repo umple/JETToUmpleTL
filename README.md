@@ -42,23 +42,17 @@ Until it is created automatically, hoewver, first create the file `Master.ump`. 
 
 For every .jumpjet file, will need to edit the corresponding .ump file. Most of the changes will correspond to the information in the JET header at the start of the .jumpjet file:
 
-1. From the file corresponding to the `skeleton` argument, copy all of the code for it into the class.
-  - Copy anything before the class declaration in the skeleton to before the declaration in the generated code (will be done automatically)
-  - Copy everything inside of the class declaration in the skeleton to inside the class declaration. Do NOT overwrite the code that was placed in the template (will be done automatically)
-2. Change the class name to be the value of the `class` argument in the header. (will be done automatically)
-3. Add all of the `imports` inside the class, with the form `depend <import>`, one import per line. (will be done automatically)
-4. If you have a `package` argument, write out `namespace <package-value>` before the class. (will be done automatically)
-5. Handle any implements/exends -> isA <classname>. Note that will not handle the external issue. Will NOT be implemented
-6. For the last function that you had copied from the `skeleton`, need to edit it. Change to emit `<functionname>(arguments)(templateName)`
-  - (Will be done semi-automatically, with there being a template for the emit statement, with the templateName provided)
-7. Add the line `use <jumpjet file name>.ump` to Master.ump, after the `generate Java` line. (Will be done automatically)
-8. Next, you will probably need to remove the first blank line(s) that will be created by Umple
+1. From the skeleton file, should ensure that all implements/extends are included. Most should be automatically.
+  - They will be placed right before the class in the corresponding .ump file.
+  - If is an interface, should be `external interface <InterfaceName> {}`
+  - If is a class, should just be `external <ClassName> {}`
+2. For the last function that occurs before the template, should copy its name and arguments into the following emit statement. There is a TODO to remind of this.
+3. Next, you will probably need to remove the first blank line(s) that will be created by Umple
   - This is necessary since JET will remove the blank lines, while Umple will not specially handle them
   - The easiest way to do this is:
     1. Go to the template (will start with `<<!` in the .ump file)
     2. Find the first line that does not start with a `<<`, in some form. If you encounter a `<<@`, will need to go into the .ump file with that name, and look through its template.
     3. Then, remove the newline for it
-  - This will NOT be handled specially, but I will try to create some examples of how to do this later
 
 Some of the above may also appy to `.jet` templates that have a `class` argument in the header. If so, this will also be handled automatically.
 

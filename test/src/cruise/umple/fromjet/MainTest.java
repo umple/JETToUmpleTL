@@ -75,6 +75,11 @@ public class MainTest {
 		checkTemplate("codeOrDirectiveToCode.ump");
 	}
 	
+	@Test
+	public void testTemplateSkeleton() {
+		checkTemplate("mainClassWithExtend.ump");
+	}
+	
 	// Mass tests
 	@Test
 	public void testTemplatesPhp() {
