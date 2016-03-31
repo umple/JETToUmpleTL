@@ -85,8 +85,7 @@ class DirectoryConverter {
 				//System.out.println("Save to " + saveTo.resolve(name + ".ump"));
 				fileNameTemplate.getValue().save(saveTo.resolve(name + ".ump"), name, mainClassToStore);
 			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				throw new IllegalStateException(e);
 			}
 		}
 		
@@ -104,7 +103,7 @@ class DirectoryConverter {
 			try (PrintWriter out = new PrintWriter(masterFilePath.toString())){
 				out.write(new FileGenerators().generateMasterUmpFile(new ArrayList<String>(emittedTemplates)));
 			} catch (FileNotFoundException e) {
-				e.printStackTrace();
+				throw new IllegalStateException(e);
 			}
 		}
 	}

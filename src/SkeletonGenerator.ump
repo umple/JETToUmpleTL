@@ -79,7 +79,11 @@ class SkeletonGenerator {
 			postClassDefinitionSkeleton = postClassDefinition.toString();
 			// Remove the final }, and everything after it as well
 			int indexOfFinalBrace = postClassDefinitionSkeleton.lastIndexOf('}');
-			postClassDefinitionSkeleton = postClassDefinitionSkeleton.substring(0, indexOfFinalBrace);
+			
+			// Handle the odd case where there is no }
+			if (indexOfFinalBrace != -1) {
+				postClassDefinitionSkeleton = postClassDefinitionSkeleton.substring(0, indexOfFinalBrace);
+			}
 			
 		} catch (IOException e) {
 			setupDefaultSkeleton();
