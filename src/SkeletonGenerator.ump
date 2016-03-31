@@ -70,7 +70,7 @@ class SkeletonGenerator {
 			}
 			
 			// To remove the extra }, will remove it from the generated string
-				// May cause issues for extra text after class, but that shouldn't really happen
+			// May cause issues for extra text after class, but that shouldn't really happen
 			while (line != null) {
 				postClassDefinition.append(line + NewLine);
 				line = br.readLine();
