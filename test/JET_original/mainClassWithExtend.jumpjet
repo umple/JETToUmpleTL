@@ -1,0 +1,2 @@
+<%@ jet package="example" class="ClassWithExtend" imports="cruise.umple.compiler.* cruise.umple.util.* java.util.*" skeleton="generator_with_extend.skeleton"%>
+// The template isn't the interesting part

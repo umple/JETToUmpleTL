@@ -1,0 +1,18 @@
+use fake_file.ump;
+
+
+class UnitTest {
+    codeOrDirectiveToCode <<!<</*codeOrDirectiveToCode*/>>
+
+// First case is an import followed by a blank line then code<<@ UnitTest.fake_file >>
+
+
+<<# // Magical code #>>
+
+// The second case is code followed by a blank line then code
+<<# // First code part #>>
+
+
+<<# // End of code part #>>
+// And it shouldn't depend on this part at all!>>
+}

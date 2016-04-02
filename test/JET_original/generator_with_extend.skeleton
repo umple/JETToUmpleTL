@@ -1,0 +1,4 @@
+public class CLASS implements ILang 
+    extends OtherClass
+{
+}

@@ -1,0 +1,4 @@
+class UnitTest {
+    templateStartingWithSpaceThenCode <<!<</*templateStartingWithSpaceThenCode*/>><<# // A nice code piece #>>
+// Should put the above line in the very beginning, rather than keep the newline or space!>>
+}

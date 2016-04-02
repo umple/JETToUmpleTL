@@ -1,0 +1,6 @@
+class UnitTest {
+    braceWithBlankLine <<!<</*braceWithBlankLine*/>>
+// Should have the blankline kept.
+  }
+!>>
+}

@@ -1,0 +1,116 @@
+namespace cruise.umple.fromjet;
+
+// Note: Would be faster to instead create it in the directory parser
+// Since will load duplicated skeletons multiple times
+class SkeletonGenerator {
+	depend java.io.*;
+	depend java.util.*;
+	depend java.nio.file.Path;
+	
+	internal Path pathRelativeTo;
+	internal String fileFrom;
+	
+	lazy immutable String preClassDefinitionSkeleton;
+	lazy immutable String postClassDefinitionSkeleton;
+	
+	const String NewLine = System.getProperties().getProperty("line.separator");
+	
+	
+	after constructor {
+		// Parse the directive
+		loadSkeleton();
+	}
+	
+	private void loadSkeleton() {
+		if (fileFrom.equals("")) {
+			setupDefaultSkeleton();
+			return;
+		}
+		
+		try (BufferedReader br = new BufferedReader(new FileReader(pathRelativeTo.resolve(fileFrom).toString()))) {
+			// Load preClass
+			String line = br.readLine();
+			
+			StringBuilder preClassDefinition = new StringBuilder();
+			while (line.indexOf("CLASS") == -1) {
+				preClassDefinition.append(line + NewLine);
+				line = br.readLine();
+			}
+			
+			
+			// Give a warning if there is any inheritance
+			List<String> interfaces = new ArrayList<>();
+			List<String> classesExtends = new ArrayList<>();
+			
+			while (line.indexOf("{") == -1) {
+				loadAllInterfaces(line, interfaces);
+				loadAllClassExtend(line, classesExtends);
+				line = br.readLine();
+			}
+			
+			int braceIndex = line.indexOf("{");
+			if (braceIndex != 0) {
+				String beforeBrace = line.substring(0, braceIndex);
+				loadAllInterfaces(beforeBrace, interfaces);
+				loadAllClassExtend(beforeBrace, classesExtends);
+			}
+			
+			preClassDefinitionSkeleton = new FileGenerators().generateIncludeAndExtendExternal(interfaces, classesExtends) + preClassDefinition.toString();
+			
+			
+			StringBuilder postClassDefinition = new StringBuilder();
+			postClassDefinition.append(new FileGenerators().generateIncludeOrExtendInsideClass(interfaces, classesExtends));
+			
+			// Load the rest of the skeleton
+			line = line.substring(braceIndex + 1);
+			
+			// Don't add the extra blank line
+			if (line == "") {
+				line = br.readLine();
+			}
+			
+			// To remove the extra }, will remove it from the generated string
+			// May cause issues for extra text after class, but that shouldn't really happen
+			while (line != null) {
+				postClassDefinition.append(line + NewLine);
+				line = br.readLine();
+			}
+			
+			postClassDefinitionSkeleton = postClassDefinition.toString();
+			// Remove the final }, and everything after it as well
+			int indexOfFinalBrace = postClassDefinitionSkeleton.lastIndexOf('}');
+			
+			// Handle the odd case where there is no }
+			if (indexOfFinalBrace != -1) {
+				postClassDefinitionSkeleton = postClassDefinitionSkeleton.substring(0, indexOfFinalBrace);
+			}
+			
+		} catch (IOException e) {
+			setupDefaultSkeleton();
+		}
+	}
+	
+	private void setupDefaultSkeleton() {
+		preClassDefinitionSkeleton = "";
+	}
+	
+	private void loadAllInterfaces(String line, List<String> interfaces) {
+		loadAllWordsAfter(line, "implements", interfaces);
+	}
+	
+	private void loadAllClassExtend(String line, List<String> classesExtends) {
+		loadAllWordsAfter(line, "extends", classesExtends);
+	}
+	
+	private void loadAllWordsAfter(String line, String wordBefore, List<String> storeInto) {
+		while (line.indexOf(wordBefore) != -1) {
+			int index = line.indexOf(wordBefore);
+			line = line.substring(index);
+			
+			// Want the string following immediately after
+			storeInto.add(line.split("\\s+")[1]);
+			line = line.substring(wordBefore.length());
+		}
+	}
+	
+}

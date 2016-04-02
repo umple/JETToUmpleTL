@@ -1,0 +1,4 @@
+<%@ jet package="cruise.umple.ignore" class="Ignore" %>
+// Should not include the last line
+Some nice and innocent source code
+  

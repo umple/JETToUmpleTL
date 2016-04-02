@@ -1,0 +1,60 @@
+namespace cruise.umple.fromjet;
+
+class DirectiveParser {
+	depend java.util.*;
+	
+	String firstLine;
+	immutable boolean isValid = true;
+	
+	
+	lazy immutable String directivePackage;
+	lazy immutable String generatedClass;
+	lazy immutable String skeleton;
+	immutable String[] directiveImports = null;
+	
+	after constructor {
+		// Parse the directive
+		parseJetDirective();
+	}
+	
+	
+	// JET files need to start with the directive. So if they don't will just ignore it
+	// I assume that the directive is contained on one line
+	private void parseJetDirective() {
+		if (!firstLine.startsWith("<%@")) {
+			isValid = false;
+			return;
+		}
+		
+		int endIndex = firstLine.indexOf("%>");
+		
+		if (endIndex == -1) {
+			isValid = false;
+			return;
+		}
+		
+		String directive = firstLine.substring("<%@".length(), endIndex);
+		directivePackage = parseArgument(directive, "package");
+		generatedClass = parseArgument(directive, "class");
+		String importsArg = parseArgument(directive, "imports");
+		if (!importsArg.equals("")) {
+			directiveImports = Arrays.asList(importsArg.split(" "));
+		} else {
+			directiveImports = new ArrayList<>();
+		}
+		skeleton = parseArgument(directive, "skeleton");
+	}
+	
+	private String parseArgument(String directive, String argument) {
+		String completeSearch = argument + "=\"";
+		int start = directive.indexOf(completeSearch);
+		if (start != -1) {
+			start += completeSearch.length();
+			// Want to cut from the =" to the next "
+			int end = directive.indexOf("\"", start);
+			return directive.substring(start, end);
+		} else {
+			return "";
+		}
+	}
+}

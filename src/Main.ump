@@ -1,5 +1,9 @@
 namespace cruise.umple.fromjet;
 
+use FileGenerators.ump;
+use DirectiveParser.ump;
+use SkeletonGenerator.ump;
+
 class Main {
 	depend java.nio.file.Path;
 	depend java.nio.file.Paths;
@@ -22,16 +26,58 @@ class DirectoryConverter {
 	depend java.util.*;
 	
 	internal Path directory;
-	internal Map<String, TemplateConverter> templates = new HashMap<String, TemplateConverter>();
+	internal Set<String> emittedTemplates = new HashSet<>();
+	internal Map<String, TemplateConverter> templates = new HashMap<>();
 	
 	// Makes it easier to set up
 	internal String mainClassToStore;
 	
 	public void convertDirectory(Path saveTo) {
-		loadBasicTemplates();
+		loadTemplates();
 		
+		saveTemplates(saveTo);
+	}
+	
+	private void loadTemplates() {
+		File dir = directory.toFile();
+	  	File[] directoryListing = dir.listFiles();
+	  	if (directoryListing != null) {
+	    	for (File child : directoryListing) {
+	    	
+	    		// Don't bother with a directory
+	    		if (child.isDirectory()) {
+	    			continue;
+	    		}
+	    		
+	    		String name = child.getName();
+	    		String extension = "";
+			
+		    	if (name.indexOf('.') != -1) {
+					extension = name.substring(name.indexOf('.') + 1);
+					name = name.substring(0, name.indexOf('.'));
+				}
+			 	
+	      		TemplateConverter template = new TemplateConverter(directory, child.toString(), name, extension.equals("jumpjet"));
+	      		
+	      		if (extension.equals("jumpjet")) {
+	      			emittedTemplates.add(name);
+	      		}
+	      		
+	      		// If it is a valid template file
+	      		if (template.convert()) {
+	      			templates.put(name, template);
+	      		}
+	    	}
+	    } else {
+	    	// TODO: Handle this case...
+	    	System.out.println("No directory...");
+	    }
+	}
+	
+	private void saveTemplates(Path saveTo) {
 		saveTo.toFile().mkdirs();
 		
+		// Save the templates first
 		for (Map.Entry<String, TemplateConverter> fileNameTemplate : templates.entrySet()) {
 			String name = fileNameTemplate.getKey();
 			
@@ -39,40 +85,27 @@ class DirectoryConverter {
 				//System.out.println("Save to " + saveTo.resolve(name + ".ump"));
 				fileNameTemplate.getValue().save(saveTo.resolve(name + ".ump"), name, mainClassToStore);
 			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				throw new IllegalStateException(e);
 			}
 		}
-	}
-	
-	private void loadBasicTemplates() {
-		File dir = new File(directory.toAbsolutePath().toString());
-	    System.out.println(dir.toString());
-	  	File[] directoryListing = dir.listFiles();
-	  	if (directoryListing != null) {
-	    	for (File child : directoryListing) {
-	    		String name = child.getName();
-				String extension = "";
+		
+		// Save the Master.ump file
+		if (emittedTemplates.size() != 0) {
+			Path masterFilePath = saveTo.resolve("Master.ump");
 			
-		    	if (name.indexOf('.') != -1) {
-					extension = name.substring(name.indexOf('.') + 1);
-					name = name.substring(0, name.indexOf('.'));
-				}
-				
-				if (!extension.equals("jet") && !extension.equals("jumpjet")) {
-					continue;
-				}
+			// Check to see if it exists, and give a warning if it does
+			File masterFile = saveTo.resolve("Master.ump").toFile();
+			if (masterFile.exists()) {
+				System.out.println("WARNING: The file Master.ump will be overwritten. Please change its name\n");
+			}
 			
-			 	
-	      		System.out.println(child.toString());
-	      		TemplateConverter template = new TemplateConverter(child.toString(), name);
-	      		template.convert();
-	      		templates.put(name, template);
-	    	}
-	    } else {
-	    	// TODO: Handle this case...
-	    	System.out.println("No directory...");
-	    }
+			
+			try (PrintWriter out = new PrintWriter(masterFilePath.toString())){
+				out.write(new FileGenerators().generateMasterUmpFile(new ArrayList<String>(emittedTemplates)));
+			} catch (FileNotFoundException e) {
+				throw new IllegalStateException(e);
+			}
+		}
 	}
 }
 
@@ -80,11 +113,16 @@ class TemplateConverter {
 	depend java.nio.file.Path;
 	depend java.io.*;
 	
-	internal String[] imports;
 	
+	lazy internal DirectiveParser directive;
+	lazy internal SkeletonGenerator skeletonGenerator;
+	internal Path directory;
 	internal path;
 	internal templateName;
 	internal TemplateElement[] elements;
+	boolean isMainTemplate;
+	
+	internal HashSet<String> allDependencies = new HashSet<>();
 	
 	const String NewLine = System.getProperties().getProperty("line.separator");
 	
@@ -92,15 +130,16 @@ class TemplateConverter {
 		Expression, Directive, Code, Text, None
 	};
 	
-	public void convert() {
+	public boolean convert() {
 		elements.clear();
 		try (BufferedReader br = new BufferedReader(new FileReader(path))) {
 		
 			elements.add(new BasicElement("<</*" + templateName + "*/>>"));
 		
-			parse(br);
+			return parse(br);
 		} catch (IOException e) {
 			e.printStackTrace();
+			return false;
 		}
 	}
 	
@@ -108,62 +147,53 @@ class TemplateConverter {
 		// TODO: Most of this shouldn't be in this class
 		// TODO: What about ones that are supposed to have their emit?
 		try (PrintWriter out = new PrintWriter(saveTo.toString())){
+			// TODO: The string should be in FileGenerators
+			FileGenerators generator = new FileGenerators();
 			
-			out.write(getPreClassText());
-			out.println("class " + mainClassToStore + " {");
-			out.write("    " + templateName + " <<!");
+			List<String> dependencies = new ArrayList<String>(allDependencies);
+			Collections.sort(dependencies);
 			
-	    	out.write(getTemplateText(mainClassToStore));
-			
-			out.println("!>>");
-			out.println("}");
-		}
-		
-	}
-	
-	public String getPreClassText() {
-		HashSet<String> allDependencies = new HashSet<String>();
-		
-		// Remove duplicates by using a HashSet
-		for (TemplateElement element : elements) {
-			String template = element.getDependencyTemplate();
-			
-			if (!template.equals("")) {
-				allDependencies.add(template);
+			String className = mainClassToStore;
+			if (isMainTemplate) {
+				className = directive.getGeneratedClass();
 			}
+			out.write(generator.generateClassFileDependencies(dependencies));
+			if (isMainTemplate) {
+				out.write(skeletonGenerator.getPreClassDefinitionSkeleton());
+			}
+			
+			out.write(generator.generateTemplateClassAndImports(directive, className));
+			if (isMainTemplate) {
+				out.write(skeletonGenerator.getPostClassDefinitionSkeleton());
+			}
+			
+			
+			out.write(generator.generateRestOfTemplate(templateName, getTemplateText(mainClassToStore), isMainTemplate));
 		}
-		
-		// Sort them to make it easier to read
-		List<String> dependencies = new ArrayList<String>(allDependencies);
-		Collections.sort(dependencies);
-		
-		StringBuilder sb = new StringBuilder();
-		for (String template : dependencies) {
-			// TODO: Should format
-			sb.append("use " + template + ".ump;" + NewLine);
-		}
-		
-		if (dependencies.size() != 0) {
-			sb.append(NewLine + NewLine);
-		}
-		
-		return sb.toString();
 	}
 	
 	public String getTemplateText(String mainClassToStore) {
 		StringBuilder sb = new StringBuilder();
+		sb.append("<<!");
 		for (TemplateElement element : elements) {
 			sb.append(element.getAsString(mainClassToStore));
 		}
-		
+		sb.append("!>>");
 		return sb.toString();
 	}
 	
-	private void parse(BufferedReader bufferedReader) throws IOException {
-		// For now, ignore the package
-		// TODO: Parse first line
-		// For now, will just skip to the end
+	private boolean parse(BufferedReader bufferedReader) throws IOException {
 		String rest = bufferedReader.readLine();
+		
+		directive = new DirectiveParser(rest);
+		if (!directive.getIsValid()) {
+			return false;
+		}
+		
+		if (isMainTemplate) {
+			skeletonGenerator = new SkeletonGenerator(directory, directive.getSkeleton());
+		}
+		
 		rest = rest.substring(rest.indexOf("%>") + "%>".length());
 		
 		// If the first line is just for the jet directive, and the next line starts with a code or directive block
@@ -174,7 +204,7 @@ class TemplateConverter {
 			
 			// Should handle this a different way, maybe from a return
 			if (rest == null) {
-				return;
+				return true;
 			}
 			
 			boolean startsWithCodeOrDirective = false;
@@ -218,6 +248,8 @@ class TemplateConverter {
 			
 			previousOp = currentOp;
 		}
+		
+		return true;
 	}
 	
 	private String parseExpressionBlock(BufferedReader bufferedReader, String restOfLine) throws IOException {
@@ -263,7 +295,9 @@ class TemplateConverter {
 	   		int start = line.indexOf('"') + 1;
 	   		int end = line.indexOf('.', start);
 	   		
-	   		elements.add(new ImportElement(line.substring(start, end)));
+	   		String template = line.substring(start, end);
+	   		elements.add(new ImportElement(template));
+	   		allDependencies.add(template);
 	   	} else {
 	   		System.out.printf("Warning, the directive %s is not currently handledn", line.split(" ")[0]);
 	   		System.out.println(restOfLine);
@@ -517,8 +551,6 @@ class TemplateConverter {
 
 interface TemplateElement {
 	String getAsString(String mainClassToStore);
-	
-	String getDependencyTemplate();
 }
 
 class BasicElement {
@@ -526,10 +558,6 @@ class BasicElement {
 	
 	public String getAsString(String mainClassToStore) {
 		return text;
-	}
-	
-	public String getDependencyTemplate() {
-		return "";
 	}
 	
 	String text;
@@ -543,9 +571,5 @@ class ImportElement {
 		return "<<@ " + mainClassToStore + '.' + templateRequired + " >>";
 	}
 	
-	public String getDependencyTemplate() {
-		return templateRequired;
-	}
-	
-	String templateRequired;
+	internal String templateRequired;
 }

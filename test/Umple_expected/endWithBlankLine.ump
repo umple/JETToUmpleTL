@@ -1,0 +1,6 @@
+class UnitTest {
+    endWithBlankLine <<!<</*endWithBlankLine*/>>
+// Should have the blankline kept. For Ruby
+  end
+!>>
+}
