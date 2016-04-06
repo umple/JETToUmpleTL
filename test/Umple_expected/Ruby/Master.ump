@@ -1,5 +1,5 @@
 // TODO: Choose path
-generate Java "path"
+generate Java "path";
 
 use rubyInterfaceGenerator.ump;
 use rubyClassGenerator.ump;

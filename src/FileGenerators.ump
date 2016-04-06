@@ -8,7 +8,7 @@ class FileGenerators {
     emit generateMasterUmpFile(List<String> compiledTemplates)(generateMasterUmpFile);
     
     generateMasterUmpFile <<!// TODO: Choose path
-generate Java "path"
+generate Java "path";
 
 <<# for (String template : compiledTemplates) {#>>
 use <<=template>>.ump;

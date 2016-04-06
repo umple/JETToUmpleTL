@@ -1,4 +1,4 @@
 // TODO: Choose path
-generate Java "path"
+generate Java "path";
 
 use mainClassWithExtend.ump;
