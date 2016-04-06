@@ -1,0 +1,26 @@
+namespace cruise.umple.fromjet;
+
+interface TemplateElement {
+    String getAsString(String mainClassToStore);
+}
+
+class BasicElement {
+    isA TemplateElement;
+    
+    public String getAsString(String mainClassToStore) {
+        return text;
+    }
+    
+    String text;
+}
+
+class ImportElement {
+    isA TemplateElement;
+    
+    public String getAsString(String mainClassToStore) {
+        // Should be changed to a format
+        return "<<@ " + mainClassToStore + '.' + templateRequired + " >>";
+    }
+    
+    internal String templateRequired;
+}
