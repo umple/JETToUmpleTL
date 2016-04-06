@@ -3,6 +3,8 @@ use interface_AbstractMethodDeclaration.ump;
 use interface_constantDeclaration.ump;
 
 
+namespace cruise.umple.compiler.php;
+
 external interface ILang {}
 
 

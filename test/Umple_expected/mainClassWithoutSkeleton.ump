@@ -1,12 +1,9 @@
-class ClassWithExtend {
-    depend cruise.umple.compiler.*;
-    depend cruise.umple.util.*;
-    depend java.util.*;
+namespace example;
 
-
+class ClassWithoutSkeleton {
     emit generate(Object argument)(mainClassWithoutSkeleton);
 
 
     mainClassWithoutSkeleton <<!<</*mainClassWithoutSkeleton*/>>
-// The template isn't the interesting part!>>
+// The template isn't the interesting part. Emit statement is interesting!>>
 }

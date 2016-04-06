@@ -1,2 +1,2 @@
-<%@ jet package="example" class="ClassWithExtend" imports="cruise.umple.compiler.* cruise.umple.util.* java.util.*" %>
-// The template isn't the interesting part
+<%@ jet package="example" class="ClassWithoutSkeleton" imports="" %>
+// The template isn't the interesting part. Emit statement is interesting

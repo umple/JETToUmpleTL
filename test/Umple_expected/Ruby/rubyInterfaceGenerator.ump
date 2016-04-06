@@ -2,6 +2,8 @@ use UmpleNotice.ump;
 use import_packages_interface.ump;
 
 
+namespace cruise.umple.compiler.ruby;
+
 external interface ILang {}
 
 

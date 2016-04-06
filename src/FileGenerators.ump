@@ -24,6 +24,12 @@ use <<=dependency>>.ump;
 
 <<# } #>>!>>
 
+    emit generateClassPackage(String directivePackage)(generateClassPackage);
+    
+    generateClassPackage <<!namespace <<=directivePackage>>;
+
+!>>
+
     emit generateTemplateClassAndImports(DirectiveParser parsedData, String className)(generateTemplateClassAndImports);
     
     generateTemplateClassAndImports <<!class <<=className>> {

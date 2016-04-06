@@ -1,3 +1,5 @@
+namespace example;
+
 external interface ILang {}
 external OtherClass {}
 

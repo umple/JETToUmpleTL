@@ -3,6 +3,8 @@ use association_set_specialization_reqCommonCode.ump;
 use association_set_specialization_reqSuperCode.ump;
 
 
+namespace cruise.umple.compiler.java;
+
 @SuppressWarnings("unused")
 class JavaSpecGenerator {
     depend cruise.umple.compiler.*;

@@ -50,12 +50,16 @@ class TemplateConverter {
             List<String> dependencies = new ArrayList<String>(allDependencies);
             Collections.sort(dependencies);
             
-            String className = mainClassToStore;
-            if (isMainTemplate) {
-                className = directive.getGeneratedClass();
-            }
+            String className = (isMainTemplate) ? directive.getGeneratedClass() : mainClassToStore;
             out.write(generator.generateClassFileDependencies(dependencies));
+            
             if (isMainTemplate) {
+                // Has package
+                String directivePackage = directive.getDirectivePackage();
+                if (directivePackage.length() > 0) {
+                    out.write(generator.generateClassPackage(directivePackage));
+                }
+                
                 out.write(skeletonGenerator.getPreClassDefinitionSkeleton());
             }
             

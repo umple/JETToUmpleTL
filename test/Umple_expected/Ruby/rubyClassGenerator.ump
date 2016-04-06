@@ -22,6 +22,8 @@ use state_machine_doActivity_All.ump;
 use state_machine_timedEvent_All.ump;
 
 
+namespace cruise.umple.compiler.ruby;
+
 external interface ILang {}
 
 

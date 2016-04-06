@@ -28,6 +28,8 @@ use trace.ump;
 use uncaught_exception.ump;
 
 
+namespace cruise.umple.compiler.java;
+
 external interface ILang {}
 
 
