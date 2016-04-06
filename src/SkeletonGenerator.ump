@@ -9,12 +9,12 @@ class SkeletonGenerator {
     
     internal Path pathRelativeTo;
     internal String fileFrom;
+    lazy boolean isDefault;
     
     lazy immutable String preClassDefinitionSkeleton;
     lazy immutable String postClassDefinitionSkeleton;
     
     const String NewLine = System.getProperties().getProperty("line.separator");
-    
     
     after constructor {
         // Parse the directive
@@ -23,9 +23,13 @@ class SkeletonGenerator {
     
     private void loadSkeleton() {
         if (fileFrom.equals("")) {
-            setupDefaultSkeleton();
+            isDefault = true;
+            preClassDefinitionSkeleton = "";
+            postClassDefinitionSkeleton = "";
             return;
         }
+        
+        isDefault = false;
         
         try (BufferedReader br = new BufferedReader(new FileReader(pathRelativeTo.resolve(fileFrom).toString()))) {
             // Load preClass
@@ -86,12 +90,8 @@ class SkeletonGenerator {
             }
             
         } catch (IOException e) {
-            setupDefaultSkeleton();
+            throw new IllegalStateException(e);
         }
-    }
-    
-    private void setupDefaultSkeleton() {
-        preClassDefinitionSkeleton = "";
     }
     
     private void loadAllInterfaces(String line, List<String> interfaces) {

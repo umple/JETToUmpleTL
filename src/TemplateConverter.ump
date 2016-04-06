@@ -60,12 +60,13 @@ class TemplateConverter {
             }
             
             out.write(generator.generateTemplateClassAndImports(directive, className));
+            
             if (isMainTemplate) {
                 out.write(skeletonGenerator.getPostClassDefinitionSkeleton());
+                out.write(generator.generateEmitStatement(templateName, skeletonGenerator.getIsDefault()));
             }
             
-            
-            out.write(generator.generateRestOfTemplate(templateName, getTemplateText(mainClassToStore), isMainTemplate));
+            out.write(generator.generateRestOfTemplate(templateName, getTemplateText(mainClassToStore)));
         }
     }
     
