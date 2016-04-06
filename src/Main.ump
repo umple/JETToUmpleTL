@@ -11,7 +11,6 @@ class Main {
     public static void main(String[] args) {
         
         Path path = Paths.get(args[0]);
-        System.out.println(path.toString());
         DirectoryConverter converter = new DirectoryConverter(path, args[2]);
         
         converter.convertDirectory(Paths.get(args[1]));
@@ -70,7 +69,7 @@ class DirectoryConverter {
             }
         } else {
             // TODO: Handle this case...
-            System.out.println("No directory...");
+            System.out.println("The directory " + directory + " doesn't exist...");
         }
     }
     
@@ -82,7 +81,6 @@ class DirectoryConverter {
             String name = fileNameTemplate.getKey();
             
             try {
-                //System.out.println("Save to " + saveTo.resolve(name + ".ump"));
                 fileNameTemplate.getValue().save(saveTo.resolve(name + ".ump"), name, mainClassToStore);
             } catch (FileNotFoundException e) {
                 throw new IllegalStateException(e);
@@ -96,7 +94,7 @@ class DirectoryConverter {
             // Check to see if it exists, and give a warning if it does
             File masterFile = saveTo.resolve("Master.ump").toFile();
             if (masterFile.exists()) {
-                System.out.println("WARNING: The file Master.ump will be overwritten. Please change its name\n");
+                System.out.println("Warning: The file Master.ump will be overwritten. Please change its name");
             }
             
             
@@ -121,6 +119,7 @@ class TemplateConverter {
     internal templateName;
     internal TemplateElement[] elements;
     boolean isMainTemplate;
+    internal boolean containsTabs = false;
     
     internal HashSet<String> allDependencies = new HashSet<>();
     
@@ -249,6 +248,10 @@ class TemplateConverter {
             previousOp = currentOp;
         }
         
+        if (containsTabs) {
+            printWarning("Contains tabs, which will be converted to 4 spaces");
+        }
+        
         return true;
     }
     
@@ -287,21 +290,21 @@ class TemplateConverter {
             ++toSkip;
         }
 
-           String line = restOfLine.substring(toSkip);
+        String line = restOfLine.substring(toSkip);
            
-           // Currently the only directive handled
-           if (line.startsWith("include")) {
-               // TODO: The included file always starts with a " right?
-               int start = line.indexOf('"') + 1;
-               int end = line.indexOf('.', start);
-               
-               String template = line.substring(start, end);
-               elements.add(new ImportElement(template));
-               allDependencies.add(template);
-           } else {
-               System.out.printf("Warning, the directive %s is not currently handledn", line.split(" ")[0]);
-               System.out.println(restOfLine);
-           }
+        // Currently the only directive handled
+        if (line.startsWith("include")) {
+            // TODO: The included file always starts with a " right?
+            int start = line.indexOf('"') + 1;
+            int end = line.indexOf('.', start);
+       
+            String template = line.substring(start, end);
+            elements.add(new ImportElement(template));
+            allDependencies.add(template);
+        } else {
+            String directive = line.split(" ")[0];
+            printWarning("Warning, the directive " + directive + " is not currently handled");
+        }
                
         
         // Handle any possible multi-line directives
@@ -363,11 +366,7 @@ class TemplateConverter {
         // TODO: For the code block ends
         boolean onlySpaces = true;
         
-        String before = line;
-        line = line.replaceAll("\t", "    ");
-        if (!before.equals(line)) {
-            System.out.println("Warning: Contains tab");
-        }
+        line = removeAnyTabs(line);
         
         // Read all full lines first
         while (!operationIsFinished(line, "<%")) {
@@ -377,7 +376,6 @@ class TemplateConverter {
             
             buffer.append(line);
             otherHadFunctionEnder = containsFunctionEnderAtEnd(previousLine);
-            //System.out.println(previousLine + ": " + otherHadBrace);
             previousLine = line;
             
             line = bufferedReader.readLine();
@@ -385,13 +383,7 @@ class TemplateConverter {
                 buffer.append(NewLine);
             }
             
-            if (line != null) {
-                before = line;
-                line = line.replaceAll("\t", "    ");
-                if (!before.equals(line)) {
-                    System.out.println("Warning: Contains tab");
-                }
-            }
+            line = removeAnyTabs(line);
         }
         
         // If the final line of file contans only spaces, remove it completely
@@ -414,8 +406,8 @@ class TemplateConverter {
             
             // Should keep this in, since may indicate odd spacing
             if (otherHadFunctionEnder && !previousLine.equals("")) {
-                // TODO: Isn't if it originally had a tab
-                System.out.println("Has the odd end");
+                // todo: isn't if it originally had a tab
+                printWarning("Has the odd end");
             }
         }
         
@@ -521,6 +513,15 @@ class TemplateConverter {
         return line;
     }
     
+    private String removeAnyTabs(String line) {
+        if (line != null && line.indexOf('\t') != -1) {
+            containsTabs = true;
+            line = line.replaceAll("\t", "    ");
+        }
+        
+        return line;
+    }
+    
     private boolean containsOnlySpaces(String line) {
         for (int i = 0; i < line.length(); ++i) {
             if (line.charAt(i) != ' ') {
@@ -546,6 +547,10 @@ class TemplateConverter {
         
         
         return pos == -1;
+    }
+    
+    private void printWarning(String warningText) {
+        System.out.println("Warning for " + templateName + ": " + warningText);
     }
 }
 
