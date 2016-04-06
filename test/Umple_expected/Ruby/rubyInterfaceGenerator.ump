@@ -17,7 +17,6 @@ class RubyInterfaceGenerator {
     isA ILang;
 
 
-
   // Add a newline to the end of the input
   private void appendln(StringBuffer buffer, String input, Object... variables)
   {

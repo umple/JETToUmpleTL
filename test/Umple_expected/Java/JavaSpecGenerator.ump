@@ -12,7 +12,6 @@ class JavaSpecGenerator {
     depend java.util.*;
 
 
-
   /*  Skeleton for the Specialization Generator
       
       This file was created to fix a "code too large" error in the 

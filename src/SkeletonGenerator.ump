@@ -68,8 +68,8 @@ class SkeletonGenerator {
             // Load the rest of the skeleton
             line = line.substring(braceIndex + 1);
             
-            // Don't add the extra blank line
-            if (line == "") {
+            // Don't add an extra blank line because of the {
+            if (line.equals("")) {
                 line = br.readLine();
             }
             
