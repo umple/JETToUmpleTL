@@ -1,0 +1,94 @@
+namespace cruise.umple.fromjet;
+
+use FileGenerators.ump;
+use TemplateConverter.ump;
+
+// NOTE: Assumes that .jumpjet generates a class, and .jet generates a template that will be placed in other templates
+class DirectoryConverter {
+    depend java.io.*;
+    depend java.nio.file.Path;
+    depend java.nio.file.Paths;
+    depend java.util.*;
+    
+    internal Path directory;
+    internal Set<String> emittedTemplates = new HashSet<>();
+    internal Map<String, TemplateConverter> templates = new HashMap<>();
+    
+    // Makes it easier to set up
+    internal String mainClassToStore;
+    
+    public void convertDirectory(Path saveTo) {
+        loadTemplates();
+        
+        saveTemplates(saveTo);
+    }
+    
+    private void loadTemplates() {
+        File dir = directory.toFile();
+          File[] directoryListing = dir.listFiles();
+          if (directoryListing != null) {
+            for (File child : directoryListing) {
+            
+                // Don't bother with a directory
+                if (child.isDirectory()) {
+                    continue;
+                }
+                
+                String name = child.getName();
+                String extension = "";
+            
+                if (name.indexOf('.') != -1) {
+                    extension = name.substring(name.indexOf('.') + 1);
+                    name = name.substring(0, name.indexOf('.'));
+                }
+                 
+                  TemplateConverter template = new TemplateConverter(directory, child.toString(), name, extension.equals("jumpjet"));
+                  
+                  if (extension.equals("jumpjet")) {
+                      emittedTemplates.add(name);
+                  }
+                  
+                  // If it is a valid template file
+                  if (template.convert()) {
+                      templates.put(name, template);
+                  }
+            }
+        } else {
+            // TODO: Handle this case...
+            System.out.println("The directory " + directory + " doesn't exist...");
+        }
+    }
+    
+    private void saveTemplates(Path saveTo) {
+        saveTo.toFile().mkdirs();
+        
+        // Save the templates first
+        for (Map.Entry<String, TemplateConverter> fileNameTemplate : templates.entrySet()) {
+            String name = fileNameTemplate.getKey();
+            
+            try {
+                fileNameTemplate.getValue().save(saveTo.resolve(name + ".ump"), name, mainClassToStore);
+            } catch (FileNotFoundException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        
+        // Save the Master.ump file
+        if (emittedTemplates.size() != 0) {
+            Path masterFilePath = saveTo.resolve("Master.ump");
+            
+            // Check to see if it exists, and give a warning if it does
+            File masterFile = saveTo.resolve("Master.ump").toFile();
+            if (masterFile.exists()) {
+                System.out.println("Warning: The file Master.ump will be overwritten. Please change its name");
+            }
+            
+            
+            try (PrintWriter out = new PrintWriter(masterFilePath.toString())){
+                out.write(new FileGenerators().generateMasterUmpFile(new ArrayList<String>(emittedTemplates)));
+            } catch (FileNotFoundException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+    }
+}
