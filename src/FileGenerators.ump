@@ -3,8 +3,7 @@ namespace cruise.umple.fromjet;
 class FileGenerators {
     depend java.util.*;
     
-    // compiledTemplates should be all of the templates that are top files
-    // Most likely just .jumpjet files
+    
     emit generateMasterUmpFile(List<String> compiledTemplates)(generateMasterUmpFile);
     
     generateMasterUmpFile <<!// TODO: Choose path
@@ -13,6 +12,8 @@ generate Java "path";
 <<# for (String template : compiledTemplates) {#>>
 use <<=template>>.ump;
 <<#}#>>!>>
+
+
 
     emit generateClassFileDependencies(List<String> dependencies)(generateClassFileDependencies);
     
@@ -24,11 +25,17 @@ use <<=dependency>>.ump;
 
 <<# } #>>!>>
 
+
+
+
     emit generateClassPackage(String directivePackage)(generateClassPackage);
     
     generateClassPackage <<!namespace <<=directivePackage>>;
 
 !>>
+
+
+
 
     emit generateTemplateClassAndImports(DirectiveParser parsedData, String className)(generateTemplateClassAndImports);
     
@@ -40,6 +47,9 @@ use <<=dependency>>.ump;
 
 
 <<# } #>>!>>
+
+
+
 
     emit generateIncludeAndExtendExternal(List<String> interfaces, List<String> classesExtends)(generateIncludeAndExtendExternal);
     
@@ -54,6 +64,9 @@ external <<=classExtend>> {}
 
 <<# } #>>!>>
 
+
+
+
     emit generateIncludeOrExtendInsideClass(List<String> interfaces, List<String> classesExtends)(generateIncludeOrExtendWarning);
     
     generateIncludeOrExtendWarning <<!<<# for (String currentInterface : interfaces) { #>>
@@ -66,8 +79,11 @@ external <<=classExtend>> {}
 
 <<# } #>>!>>
 
-    emit generateEmitStatement(String templateName, boolean isDefaultTemplate)(generateEmitStatement);
-    generateEmitStatement <<!<<# if (!isDefaultTemplate) { #>>
+
+
+
+    emit generateEmitStatement(String templateName, boolean hasSpecializedSkeleton)(generateEmitStatement);
+    generateEmitStatement <<!<<# if (hasSpecializedSkeleton) { #>>
 
     // TODO: Replace <lastFunctionName> with the name of the function that is above this. Replace arguments as well.
         // That function can be removed
@@ -78,6 +94,8 @@ external <<=classExtend>> {}
 
 
 !>>
+
+
 
 
     emit generateRestOfTemplate(String templateName, String templateText)(generateRestOfTemplate);

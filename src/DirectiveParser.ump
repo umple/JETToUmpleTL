@@ -1,5 +1,8 @@
 namespace cruise.umple.fromjet;
 
+use Constants.ump;
+
+
 class DirectiveParser {
     depend java.util.*;
     
@@ -19,40 +22,46 @@ class DirectiveParser {
     
     
     // JET files need to start with the directive. So if they don't will just ignore it
-    // I assume that the directive is contained on one line
+    // Assumes that the directive is contained on one line
     private void parseJetDirective() {
-        if (!firstLine.startsWith("<%@")) {
+        if (!firstLine.startsWith(JETConstants.DirectiveStart)) {
             isValid = false;
             return;
         }
         
-        int endIndex = firstLine.indexOf("%>");
+        int endIndex = firstLine.indexOf(JETConstants.DirectiveEnd);
         
         if (endIndex == -1) {
             isValid = false;
             return;
         }
         
-        String directive = firstLine.substring("<%@".length(), endIndex);
+        String directive = firstLine.substring(JETConstants.DirectiveStart.length(), endIndex);
+        
+        
         directivePackage = parseArgument(directive, "package");
         generatedClass = parseArgument(directive, "class");
+        skeleton = parseArgument(directive, "skeleton");
+        
         String importsArg = parseArgument(directive, "imports");
         if (!importsArg.equals("")) {
             directiveImports = Arrays.asList(importsArg.split(" "));
         } else {
             directiveImports = new ArrayList<>();
         }
-        skeleton = parseArgument(directive, "skeleton");
     }
     
     private String parseArgument(String directive, String argument) {
-        String completeSearch = argument + "=\"";
-        int start = directive.indexOf(completeSearch);
+        String completeElementSearch = argument + "=\"";
+        int start = directive.indexOf(completeElementSearch);
+        
         if (start != -1) {
-            start += completeSearch.length();
+            start += completeElementSearch.length();
+            
             // Want to cut from the =" to the next "
             int end = directive.indexOf("\"", start);
             return directive.substring(start, end);
+            
         } else {
             return "";
         }

@@ -32,6 +32,8 @@ public class MainTest {
         // Convert the base files
         DirectoryConverter converter = new DirectoryConverter(originalPath, "UnitTest");
         converter.convertDirectory(convertedPath);
+        
+        // Some
     }
     
     private Path currentConvertedPath;
