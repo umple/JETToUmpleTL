@@ -23,6 +23,7 @@ class DirectiveParser {
     
     // JET files need to start with the directive. So if they don't will just ignore it
     // Assumes that the directive is contained on one line
+    // Note that this is not correct, and should be fixed in issue #8
     private void parseJetDirective() {
         if (!firstLine.startsWith(JETConstants.DirectiveStart)) {
             isValid = false;

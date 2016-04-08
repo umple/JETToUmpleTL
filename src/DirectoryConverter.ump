@@ -43,10 +43,11 @@ class DirectoryConverter {
     private void loadTemplate(File templateFile) {
         String name = templateFile.getName();
         String extension = "";
-    
-        if (name.indexOf('.') != -1) {
-            extension = name.substring(name.indexOf('.') + 1);
-            name = name.substring(0, name.indexOf('.'));
+        
+        int periodIndex = name.indexOf('.');
+        if (periodIndex != -1) {
+            extension = name.substring(periodIndex + 1);
+            name = name.substring(0, periodIndex);
         }
         
         // Should be extended in the future

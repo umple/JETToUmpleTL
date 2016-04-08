@@ -33,7 +33,7 @@ public class MainTest {
         DirectoryConverter converter = new DirectoryConverter(originalPath, "UnitTest");
         converter.convertDirectory(convertedPath);
         
-        // Some
+        // Some of the files in the originalPath are just meant to be tested to ensure they don't crash when converted
     }
     
     private Path currentConvertedPath;
@@ -121,7 +121,7 @@ public class MainTest {
         // Iterate through each file in expected directory
         File dir = currentExpectedPath.toFile();
         File[] directoryListing = dir.listFiles();
-          if (directoryListing != null) {
+        if (directoryListing != null) {
             for (File child : directoryListing) {
                 templatesExpected.add(child.getName());
                 checkTemplate(child.getName());
@@ -130,10 +130,10 @@ public class MainTest {
             fail("Directory " + folder + " should exist");
         }
         
-          // Ensure each file in the created directory was expected
-          dir = currentConvertedPath.toFile();
+        // Ensure each file in the created directory was expected
+        dir = currentConvertedPath.toFile();
         directoryListing = dir.listFiles();
-          if (directoryListing != null) {
+        if (directoryListing != null) {
             for (File child : directoryListing) {
                 assertTrue("Extra file " + child.getName(), templatesExpected.contains(child.getName()));
             }
