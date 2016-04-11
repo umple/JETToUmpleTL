@@ -28,6 +28,8 @@ use trace.ump;
 use uncaught_exception.ump;
 
 
+namespace cruise.umple.compiler.java;
+
 external interface ILang {}
 
 
@@ -40,7 +42,6 @@ class JavaClassGenerator {
 
 
     isA ILang;
-
 
 
   // Add a newline to the end of the input

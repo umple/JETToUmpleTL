@@ -7,7 +7,6 @@ class Main {
     depend java.nio.file.Paths;
     
     public static void main(String[] args) {
-        
         Path path = Paths.get(args[0]);
         DirectoryConverter converter = new DirectoryConverter(path, args[2]);
         

@@ -1,5 +1,9 @@
 namespace cruise.umple.fromjet;
 
+use Constants.ump;
+use FileGenerators.ump;
+
+
 // Note: Would be faster to instead create it in the directory parser
 // Since will load duplicated skeletons multiple times
 class SkeletonGenerator {
@@ -9,28 +13,33 @@ class SkeletonGenerator {
     
     internal Path pathRelativeTo;
     internal String fileFrom;
+    lazy boolean hasSpecializedSkeleton;
     
     lazy immutable String preClassDefinitionSkeleton;
     lazy immutable String postClassDefinitionSkeleton;
     
     const String NewLine = System.getProperties().getProperty("line.separator");
     
-    
     after constructor {
-        // Parse the directive
-        loadSkeleton();
+        // Load the skeleton from the file
+        if (fileFrom.equals("")) {
+            hasSpecializedSkeleton = false;
+            preClassDefinitionSkeleton = "";
+            postClassDefinitionSkeleton = "";
+        } else {
+            hasSpecializedSkeleton = true;
+            loadSpecializedSkeleton();
+        }
     }
     
-    private void loadSkeleton() {
-        if (fileFrom.equals("")) {
-            setupDefaultSkeleton();
-            return;
-        }
+    private void loadSpecializedSkeleton() {
         
         try (BufferedReader br = new BufferedReader(new FileReader(pathRelativeTo.resolve(fileFrom).toString()))) {
             // Load preClass
             String line = br.readLine();
             
+            // Since must have the CLASS argument for the declaration of class, can use
+            // it to break up into pre and post class definition
             StringBuilder preClassDefinition = new StringBuilder();
             while (line.indexOf("CLASS") == -1) {
                 preClassDefinition.append(line + NewLine);
@@ -38,10 +47,11 @@ class SkeletonGenerator {
             }
             
             
-            // Give a warning if there is any inheritance
+            // Will automatically setup the interfaces and class extends from
             List<String> interfaces = new ArrayList<>();
             List<String> classesExtends = new ArrayList<>();
             
+            // Since the class declaration could span multiple lines, keep trying to load until just before the first {
             while (line.indexOf("{") == -1) {
                 loadAllInterfaces(line, interfaces);
                 loadAllClassExtend(line, classesExtends);
@@ -61,15 +71,14 @@ class SkeletonGenerator {
             StringBuilder postClassDefinition = new StringBuilder();
             postClassDefinition.append(new FileGenerators().generateIncludeOrExtendInsideClass(interfaces, classesExtends));
             
-            // Load the rest of the skeleton
+            // Load the rest of the skeleton, removing the {
             line = line.substring(braceIndex + 1);
             
-            // Don't add the extra blank line
-            if (line == "") {
+            // Don't add an extra blank line because of the {
+            if (line.equals("")) {
                 line = br.readLine();
             }
             
-            // To remove the extra }, will remove it from the generated string
             // May cause issues for extra text after class, but that shouldn't really happen
             while (line != null) {
                 postClassDefinition.append(line + NewLine);
@@ -77,6 +86,8 @@ class SkeletonGenerator {
             }
             
             postClassDefinitionSkeleton = postClassDefinition.toString();
+            
+            
             // Remove the final }, and everything after it as well
             int indexOfFinalBrace = postClassDefinitionSkeleton.lastIndexOf('}');
             
@@ -86,12 +97,8 @@ class SkeletonGenerator {
             }
             
         } catch (IOException e) {
-            setupDefaultSkeleton();
+            throw new IllegalStateException(e);
         }
-    }
-    
-    private void setupDefaultSkeleton() {
-        preClassDefinitionSkeleton = "";
     }
     
     private void loadAllInterfaces(String line, List<String> interfaces) {

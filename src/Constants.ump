@@ -1,0 +1,59 @@
+namespace cruise.umple.fromjet;
+
+// Basic templates
+class Constants {
+    const String NewLine = System.getProperties().getProperty("line.separator");
+    
+    public static final String[] FunctionEnders = {"}", "end"};
+}
+
+
+// These are all constants for parsing the JET templates
+class JETConstants {
+    const String SpecialBlockStart = "<%";
+    const String SpecialBlockEnd = "%>";
+
+
+    const String DirectiveStart = SpecialBlockStart + "@";
+    const String DirectiveEnd = SpecialBlockEnd;
+    const String DirectiveInclude = "include";
+    
+    const String ExpressionStart = SpecialBlockStart + "=";
+    const String ExpressionEnd = SpecialBlockEnd;
+
+    const String CodeStart = SpecialBlockStart;
+    const String CodeEnd = SpecialBlockEnd;
+    
+    const String PureTextEnd = SpecialBlockStart;
+    
+    
+    const String StringBufferName = "stringBuffer";
+    
+}
+
+// These are all constants for creating the Umple templates
+class UmpleTemplateConstants {
+
+    const String SpecialBlockStart = "<<";
+    const String SpecialBlockEnd = ">>";
+    
+    const String TemplateStart = SpecialBlockStart + "!";
+    const String TemplateEnd = "!" + SpecialBlockEnd;
+    
+    const String ExpressionStart = SpecialBlockStart + "=";
+    const String ExpressionEnd = SpecialBlockEnd;
+
+    const String CodeStart = SpecialBlockStart + "#";
+    const String CodeEnd = "#" + SpecialBlockEnd;
+
+    const String IncludeStart = SpecialBlockStart + "@";
+    const String IncludeEnd = SpecialBlockEnd;
+    
+    const String CommentBlockStart = SpecialBlockStart + "/*";
+    const String CommentBlockEnd = "*/" + SpecialBlockEnd;
+    
+    const String PureTextEnd = SpecialBlockStart;
+    
+
+    const String StringBufferName = "realSb";
+}

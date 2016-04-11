@@ -1,0 +1,2 @@
+<%@ jet package="example" class="ClassWithoutSkeleton" imports="" %>
+// The template isn't the interesting part. Emit statement is interesting

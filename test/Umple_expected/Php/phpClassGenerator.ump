@@ -21,6 +21,8 @@ use state_machine_Set_All.ump;
 use trace.ump;
 
 
+namespace cruise.umple.compiler.php;
+
 external interface ILang {}
 
 
@@ -32,7 +34,6 @@ class PhpClassGenerator {
 
 
     isA ILang;
-
 
 
   // Add a newline to the end of the input

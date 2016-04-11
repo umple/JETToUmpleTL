@@ -1,0 +1,9 @@
+namespace example;
+
+class ClassWithoutSkeleton {
+    emit generate(Object argument)(mainClassWithoutSkeleton);
+
+
+    mainClassWithoutSkeleton <<!<</*mainClassWithoutSkeleton*/>>
+// The template isn't the interesting part. Emit statement is interesting!>>
+}

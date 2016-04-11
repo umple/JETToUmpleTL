@@ -25,37 +25,42 @@ class DirectoryConverter {
     
     private void loadTemplates() {
         File dir = directory.toFile();
-          File[] directoryListing = dir.listFiles();
-          if (directoryListing != null) {
+        File[] directoryListing = dir.listFiles();
+        if (directoryListing != null) {
             for (File child : directoryListing) {
             
                 // Don't bother with a directory
-                if (child.isDirectory()) {
-                    continue;
+                if (!child.isDirectory()) {
+                    loadTemplate(child);
                 }
-                
-                String name = child.getName();
-                String extension = "";
-            
-                if (name.indexOf('.') != -1) {
-                    extension = name.substring(name.indexOf('.') + 1);
-                    name = name.substring(0, name.indexOf('.'));
-                }
-                 
-                  TemplateConverter template = new TemplateConverter(directory, child.toString(), name, extension.equals("jumpjet"));
-                  
-                  if (extension.equals("jumpjet")) {
-                      emittedTemplates.add(name);
-                  }
-                  
-                  // If it is a valid template file
-                  if (template.convert()) {
-                      templates.put(name, template);
-                  }
             }
+            
         } else {
-            // TODO: Handle this case...
-            System.out.println("The directory " + directory + " doesn't exist...");
+            throw new IllegalStateException("The directory " + directory + " doesn't exist.");
+        }
+    }
+    
+    private void loadTemplate(File templateFile) {
+        String name = templateFile.getName();
+        String extension = "";
+        
+        int periodIndex = name.indexOf('.');
+        if (periodIndex != -1) {
+            extension = name.substring(periodIndex + 1);
+            name = name.substring(0, periodIndex);
+        }
+        
+        // Should be extended in the future
+        boolean isMainTemplate = extension.equals("jumpjet");
+        TemplateConverter template = new TemplateConverter(templateFile.toPath(), name, isMainTemplate);
+          
+        if (isMainTemplate) {
+            emittedTemplates.add(name);
+        }
+          
+        // If it is a valid template file
+        if (template.convert()) {
+            templates.put(name, template);
         }
     }
     
@@ -67,7 +72,8 @@ class DirectoryConverter {
             String name = fileNameTemplate.getKey();
             
             try {
-                fileNameTemplate.getValue().save(saveTo.resolve(name + ".ump"), name, mainClassToStore);
+                Path toSaveTo = saveTo.resolve(name + ".ump");
+                fileNameTemplate.getValue().save(toSaveTo, name, mainClassToStore);
             } catch (FileNotFoundException e) {
                 throw new IllegalStateException(e);
             }

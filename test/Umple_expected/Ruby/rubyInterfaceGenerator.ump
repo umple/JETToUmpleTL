@@ -2,6 +2,8 @@ use UmpleNotice.ump;
 use import_packages_interface.ump;
 
 
+namespace cruise.umple.compiler.ruby;
+
 external interface ILang {}
 
 
@@ -13,7 +15,6 @@ class RubyInterfaceGenerator {
 
 
     isA ILang;
-
 
 
   // Add a newline to the end of the input

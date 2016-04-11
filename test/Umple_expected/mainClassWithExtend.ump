@@ -1,3 +1,5 @@
+namespace example;
+
 external interface ILang {}
 external OtherClass {}
 
@@ -10,7 +12,6 @@ class ClassWithExtend {
 
     isA ILang;
     isA OtherClass;
-
 
 
     // TODO: Replace <lastFunctionName> with the name of the function that is above this. Replace arguments as well.

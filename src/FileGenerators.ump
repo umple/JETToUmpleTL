@@ -3,16 +3,17 @@ namespace cruise.umple.fromjet;
 class FileGenerators {
     depend java.util.*;
     
-    // compiledTemplates should be all of the templates that are top files
-    // Most likely just .jumpjet files
+    
     emit generateMasterUmpFile(List<String> compiledTemplates)(generateMasterUmpFile);
     
     generateMasterUmpFile <<!// TODO: Choose path
-generate Java "path"
+generate Java "path";
 
 <<# for (String template : compiledTemplates) {#>>
 use <<=template>>.ump;
 <<#}#>>!>>
+
+
 
     emit generateClassFileDependencies(List<String> dependencies)(generateClassFileDependencies);
     
@@ -24,6 +25,18 @@ use <<=dependency>>.ump;
 
 <<# } #>>!>>
 
+
+
+
+    emit generateClassPackage(String directivePackage)(generateClassPackage);
+    
+    generateClassPackage <<!namespace <<=directivePackage>>;
+
+!>>
+
+
+
+
     emit generateTemplateClassAndImports(DirectiveParser parsedData, String className)(generateTemplateClassAndImports);
     
     generateTemplateClassAndImports <<!class <<=className>> {
@@ -34,6 +47,9 @@ use <<=dependency>>.ump;
 
 
 <<# } #>>!>>
+
+
+
 
     emit generateIncludeAndExtendExternal(List<String> interfaces, List<String> classesExtends)(generateIncludeAndExtendExternal);
     
@@ -48,6 +64,9 @@ external <<=classExtend>> {}
 
 <<# } #>>!>>
 
+
+
+
     emit generateIncludeOrExtendInsideClass(List<String> interfaces, List<String> classesExtends)(generateIncludeOrExtendWarning);
     
     generateIncludeOrExtendWarning <<!<<# for (String currentInterface : interfaces) { #>>
@@ -60,20 +79,28 @@ external <<=classExtend>> {}
 
 <<# } #>>!>>
 
-!>>
 
 
-emit generateRestOfTemplate(String templateName, String templateText, boolean isMainTemplate)(generateRestOfTemplate);
 
-    generateRestOfTemplate <<!<<# if (isMainTemplate) { #>>
+    emit generateEmitStatement(String templateName, boolean hasSpecializedSkeleton)(generateEmitStatement);
+    generateEmitStatement <<!<<# if (hasSpecializedSkeleton) { #>>
 
     // TODO: Replace <lastFunctionName> with the name of the function that is above this. Replace arguments as well.
         // That function can be removed
     emit <lastFunctionName>(arguments...)(<<=templateName>>);
+<<# } else { // Can set up the emit properly, since it is set in the JET spec#>>
+    emit generate(Object argument)(<<=templateName>>);
+<<# } #>>
 
 
-<<#    } #>>
-    <<=templateName>> <<=templateText>>
+!>>
+
+
+
+
+    emit generateRestOfTemplate(String templateName, String templateText)(generateRestOfTemplate);
+
+    generateRestOfTemplate <<!    <<=templateName>> <<=templateText>>
 }!>>
 
     //emit defaultSkeleton() {

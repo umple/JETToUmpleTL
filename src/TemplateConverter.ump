@@ -1,5 +1,6 @@
 namespace cruise.umple.fromjet;
 
+use Constants.ump;
 use DirectiveParser.ump;
 use Elements.ump;
 use FileGenerators.ump;
@@ -12,26 +13,54 @@ class TemplateConverter {
     
     lazy internal DirectiveParser directive;
     lazy internal SkeletonGenerator skeletonGenerator;
-    internal Path directory;
-    internal path;
+    
+    // Directory the template is stored in
+    internal Path templatePath;
     internal templateName;
     internal TemplateElement[] elements;
     boolean isMainTemplate;
     internal boolean containsTabs = false;
     
+    // Templates that it depends on
     internal HashSet<String> allDependencies = new HashSet<>();
     
-    const String NewLine = System.getProperties().getProperty("line.separator");
-    
+    // Expression, Directive, Code are self-explanatory
+    // Text (or PureText) is everything not contained in one of the other operations
     private enum Operation {
-        Expression, Directive, Code, Text, None
+        Expression, Directive, Code, Text, None;
+        
+        // Should be used to check what specific operation is started on the line.
+        // Isn't very smart, won't work if an operation is continuing
+        private static Operation operationStartingOnLine(String line) {
+            int indexOfStart = line.indexOf(JETConstants.SpecialBlockStart);
+            if (indexOfStart != -1) {
+                return getStartingOperation(line.substring(indexOfStart));
+            }
+            
+            return Operation.Text;
+        }
+        
+        // Will determine which operation is starting at the beginning of the given line
+        private static Operation getStartingOperation(String line) {
+            if (line.startsWith(JETConstants.ExpressionStart)) {
+                return Operation.Expression;
+            } else if (line.startsWith(JETConstants.DirectiveStart)) {
+                return Operation.Directive;
+            } else if (line.startsWith(JETConstants.CodeStart)) {
+                return Operation.Code;
+            } else {
+                return Operation.Text;
+            }
+        }
     };
     
     public boolean convert() {
         elements.clear();
-        try (BufferedReader br = new BufferedReader(new FileReader(path))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(templatePath.toString()))) {
         
-            elements.add(new BasicElement("<</*" + templateName + "*/>>"));
+            // Work around for Umple templates issue with comments containing the end of template
+            // Could add this if the need arises, but adding it also makes debugging easier
+            elements.add(new BasicElement(UmpleTemplateConstants.CommentBlockStart + templateName + UmpleTemplateConstants.CommentBlockEnd));
         
             return parse(br);
         } catch (IOException e) {
@@ -41,41 +70,43 @@ class TemplateConverter {
     }
     
     public void save(Path saveTo, String templateName, String mainClassToStore) throws FileNotFoundException{
-        // TODO: Most of this shouldn't be in this class
-        // TODO: What about ones that are supposed to have their emit?
-        try (PrintWriter out = new PrintWriter(saveTo.toString())){
-            // TODO: The string should be in FileGenerators
+        try (PrintWriter out = new PrintWriter(saveTo.toString())) {
             FileGenerators generator = new FileGenerators();
             
             List<String> dependencies = new ArrayList<String>(allDependencies);
             Collections.sort(dependencies);
             
-            String className = mainClassToStore;
-            if (isMainTemplate) {
-                className = directive.getGeneratedClass();
-            }
+            String className = (isMainTemplate) ? directive.getGeneratedClass() : mainClassToStore;
             out.write(generator.generateClassFileDependencies(dependencies));
+            
             if (isMainTemplate) {
+                // Add package if it has one
+                String directivePackage = directive.getDirectivePackage();
+                if (directivePackage.length() > 0) {
+                    out.write(generator.generateClassPackage(directivePackage));
+                }
+                
                 out.write(skeletonGenerator.getPreClassDefinitionSkeleton());
             }
             
             out.write(generator.generateTemplateClassAndImports(directive, className));
+            
             if (isMainTemplate) {
                 out.write(skeletonGenerator.getPostClassDefinitionSkeleton());
+                out.write(generator.generateEmitStatement(templateName, skeletonGenerator.getHasSpecializedSkeleton()));
             }
             
-            
-            out.write(generator.generateRestOfTemplate(templateName, getTemplateText(mainClassToStore), isMainTemplate));
+            out.write(generator.generateRestOfTemplate(templateName, getTemplateText(mainClassToStore)));
         }
     }
     
     public String getTemplateText(String mainClassToStore) {
         StringBuilder sb = new StringBuilder();
-        sb.append("<<!");
+        sb.append(UmpleTemplateConstants.TemplateStart);
         for (TemplateElement element : elements) {
             sb.append(element.getAsString(mainClassToStore));
         }
-        sb.append("!>>");
+        sb.append(UmpleTemplateConstants.TemplateEnd);
         return sb.toString();
     }
     
@@ -88,25 +119,29 @@ class TemplateConverter {
         }
         
         if (isMainTemplate) {
-            skeletonGenerator = new SkeletonGenerator(directory, directive.getSkeleton());
+            // No need to parse the skeleton if it isn't a main template
+            // Since it is currently only used if it is a main template
+            skeletonGenerator = new SkeletonGenerator(templatePath.getParent(), directive.getSkeleton());
         }
         
-        rest = rest.substring(rest.indexOf("%>") + "%>".length());
+        rest = rest.substring(rest.indexOf(JETConstants.DirectiveEnd) + JETConstants.DirectiveEnd.length());
         
-        // If the first line is just for the jet directive, and the next line starts with a code or directive block
-           // then not add a new line
-        // Also, remove any extra spaces
+        // If the first line is just for the jet directive, will parse it specially
         if (rest.equals("")) {
             rest = bufferedReader.readLine();
             
-            // Should handle this a different way, maybe from a return
+            // Template was just a directive, and will be blank otherwise.
+            // Still a valid template
             if (rest == null) {
                 return true;
             }
             
+            // If the first line starts with spaces followed immediately by a Code or Directive Operation
+            // Must remove the spaces and newline leading into the Operation
+            // Otherwise, the newline should be kept
             boolean startsWithCodeOrDirective = false;
-            Operation operation = operationStartingOnLine(rest);
-            int pos = rest.indexOf("<%");
+            Operation operation = Operation.operationStartingOnLine(rest);
+            int pos = rest.indexOf(JETConstants.SpecialBlockStart);
             
             if (operation == Operation.Code || operation == Operation.Directive) {
                 startsWithCodeOrDirective = containsOnlySpaces(rest.substring(0, pos));
@@ -115,22 +150,23 @@ class TemplateConverter {
             if (startsWithCodeOrDirective) {
                 rest = rest.substring(pos);
             } else {
-                elements.add(new BasicElement(NewLine));
+                elements.add(new BasicElement(Constants.NewLine));
             }
         }
-    
+
+
+        // PreviousOp is currently just used by pure text
         Operation previousOp = Operation.None;
         
-        // Rest is for the rest of the file
+        // Rest is what was left of the previous line after the end of the previous operation
         while (rest != null) {
-            Operation currentOp = getStartingOperation(rest);
+            Operation currentOp = Operation.getStartingOperation(rest);
             switch (currentOp) {
                 case Expression:
                     rest = parseExpressionBlock(bufferedReader, rest);
                     break;
                     
                 case Directive:
-                    // parseDirective -> Right now, just handle 'include file="<template>"
                     rest = parseDirectiveBlock(bufferedReader, rest);
                     break;
                     
@@ -153,37 +189,40 @@ class TemplateConverter {
         return true;
     }
     
+    // Will be refactoring the parse*Block functions into a group of classes
+    // Will be in a separate pull request, due to the significance of the code changes
     private String parseExpressionBlock(BufferedReader bufferedReader, String restOfLine) throws IOException {
         StringBuffer buffer = new StringBuffer();
-        buffer.append("<<=");
+        buffer.append(UmpleTemplateConstants.ExpressionStart);
         
-           String line = restOfLine.substring("<%=".length());
+        String line = restOfLine.substring(JETConstants.ExpressionStart.length());
         
         // Read all full lines first
-        while (!operationIsFinished(line, "%>")) {
+        while (!operationIsFinished(line, JETConstants.ExpressionEnd)) {
             buffer.append(line);
             line = bufferedReader.readLine();
             if (shouldAppendNewline(line, Operation.Expression)) {
-                buffer.append(NewLine);
+                buffer.append(Constants.NewLine);
             }
         }
         
         if (line != null)
         {
-            int indexOf = line.indexOf("%>");
+            int indexOf = line.indexOf(JETConstants.ExpressionEnd);
             
             buffer.append(line.substring(0, indexOf));
-            line = line.substring(indexOf + "%>".length());
+            line = line.substring(indexOf + JETConstants.ExpressionEnd.length());
         }
 
-        buffer.append(">>");
+        buffer.append(UmpleTemplateConstants.ExpressionEnd);
         elements.add(new BasicElement(buffer.toString()));
         
         return line;
     }
     
     private String parseDirectiveBlock(BufferedReader bufferedReader, String restOfLine) throws IOException {
-        int toSkip = "<%@".length() + 1;
+        // Skip past the directive start, to where the first non-space character is
+        int toSkip = JETConstants.DirectiveStart.length() + 1;
         while (restOfLine.charAt(toSkip) == ' ') {
             ++toSkip;
         }
@@ -191,8 +230,9 @@ class TemplateConverter {
         String line = restOfLine.substring(toSkip);
            
         // Currently the only directive handled
-        if (line.startsWith("include")) {
-            // TODO: The included file always starts with a " right?
+        if (line.startsWith(JETConstants.DirectiveInclude)) {
+            // Only want from the start of the template name (one past the first ")
+            // to the . since won't care about the extension
             int start = line.indexOf('"') + 1;
             int end = line.indexOf('.', start);
        
@@ -203,15 +243,14 @@ class TemplateConverter {
             String directive = line.split(" ")[0];
             printWarning("Warning, the directive " + directive + " is not currently handled");
         }
-               
         
         // Handle any possible multi-line directives
-        while (!operationIsFinished(line, "%>")) {
+        while (!operationIsFinished(line, JETConstants.DirectiveEnd)) {
             line = bufferedReader.readLine();
         }
         
         if (line != null) {
-            line = line.substring(line.indexOf("%>") + "%>".length());
+            line = line.substring(line.indexOf(JETConstants.DirectiveEnd) + JETConstants.DirectiveEnd.length());
         }
         
         return line;
@@ -220,34 +259,34 @@ class TemplateConverter {
     private String parseCodeBlock(BufferedReader bufferedReader, String restOfLine) throws IOException {
         StringBuffer buffer = new StringBuffer();
         
-        buffer.append("<<#");
+        buffer.append(UmpleTemplateConstants.CodeStart);
         
-           String line = restOfLine.substring("<%".length());
+        String line = restOfLine.substring(JETConstants.CodeStart.length());
         if (line != null) {
-            line = line.replaceAll("stringBuffer", "realSb");
+            line = line.replaceAll(JETConstants.StringBufferName, UmpleTemplateConstants.StringBufferName);
         }
             
         // Read all full lines first
-        while (!operationIsFinished(line, "%>")) {
+        while (!operationIsFinished(line, JETConstants.CodeEnd)) {
             buffer.append(line);
             line = bufferedReader.readLine();
             if (shouldAppendNewline(line, Operation.Code)) {
-                buffer.append(NewLine);
+                buffer.append(Constants.NewLine);
             }
             if (line != null) {
-                line = line.replaceAll("stringBuffer", "realSb");
+                line = line.replaceAll(JETConstants.StringBufferName, UmpleTemplateConstants.StringBufferName);
             }
         }
         
         if (line != null)
         {
-            int indexOf = line.indexOf("%>");
+            int indexOf = line.indexOf(JETConstants.CodeEnd);
         
             buffer.append(line.substring(0, indexOf));
-            line = line.substring(indexOf + "%>".length());
+            line = line.substring(indexOf + JETConstants.CodeEnd.length());
         }
 
-        buffer.append("#>>");
+        buffer.append(UmpleTemplateConstants.CodeEnd);
         
         elements.add(new BasicElement(buffer.toString()));
         
@@ -258,88 +297,105 @@ class TemplateConverter {
         StringBuffer buffer = new StringBuffer();
         String line = restOfLine, previousLine = null;
         
-        // TODO: Better name....
-        boolean otherHadFunctionEnder = false;
+        // For some of the special cases, records if the line before previous line contained a function ender, like a } or end
+        boolean functionEnderOccuredTwoLinesAgo = false;
         
-        // TODO: For the code block ends
-        boolean onlySpaces = true;
+        // Records if the entire block contained only spaces
+        // Used for a special case involving Code blocks
+        boolean blockContainedOnlySpaces = true;
         
         line = removeAnyTabs(line);
         
         // Read all full lines first
-        while (!operationIsFinished(line, "<%")) {
+        while (!operationIsFinished(line, JETConstants.PureTextEnd)) {
             if (!containsOnlySpaces(line)) {
-                onlySpaces = false;
+                blockContainedOnlySpaces = false;
             }
             
             buffer.append(line);
-            otherHadFunctionEnder = containsFunctionEnderAtEnd(previousLine);
+            functionEnderOccuredTwoLinesAgo = containsFunctionEnderAtEnd(previousLine);
             previousLine = line;
             
             line = bufferedReader.readLine();
             if (shouldAppendNewline(line, Operation.Text)) {
-                buffer.append(NewLine);
+                buffer.append(Constants.NewLine);
             }
             
             line = removeAnyTabs(line);
         }
         
-        // If the final line of file contans only spaces, remove it completely
-            // And remove the newline before it (separately though)
-            // Because JET will not include it, but ours will
-            // Fixes constructor_StateMachineAssignDefault
+        // Special case which involving the last line of the file
+        // In general, JET will remove the last textual line of a file if it is just spaces
+        // Umple will never remove it, so may need to remove the last line
+        //   For the current restrictions:
+        //      1) Final line of file (previousLine) must have been just spaces
+        //      2) There wasn't a function ender (} or end) at end of line before the blank line
+        //      3) This block didn't a) follow an Operation.Code and b) contain only spaces (very specific)
         if (line == null && containsOnlySpaces(previousLine)) {
-            // TODO: Make it more obvious what this depends on
-            int index = buffer.lastIndexOf(previousLine);
-            if (index >= 0 && !otherHadFunctionEnder && !(onlySpaces && previousOp == Operation.Code)) {
-                buffer.delete(index, buffer.length());
-                
-                // Then, need to delete the newline before it, if it exists
-                // But only if there wasn't a brace at the end
-                index = buffer.lastIndexOf(NewLine);
+            // WARNING: This special case is not complete, with there being one issue: #4
+            //    It is based around having an extra newline at the end of a file
+            //      It is easily identified in Git, with "No newline at end of file"
+            //      What will happen (I believe) is that, for files with No newline, JET will keep the last line, but the Java conversions doesn't
+            //      currently detect this
+            if (!functionEnderOccuredTwoLinesAgo && !(previousOp == Operation.Code && blockContainedOnlySpaces)) {
+                // First, delete the last line of text. This is fine even if it is just ""
+                int index = buffer.lastIndexOf(previousLine);
                 if (index != -1) {
                     buffer.delete(index, buffer.length());
                 }
-            }
-            
-            // Should keep this in, since may indicate odd spacing
-            if (otherHadFunctionEnder && !previousLine.equals("")) {
-                // todo: isn't if it originally had a tab
-                printWarning("Has the odd end");
+                
+                // Then, need to delete the newline before it, if it exists
+                // But only if there wasn't a brace at the end
+                index = buffer.lastIndexOf(Constants.NewLine);
+                if (index != -1) {
+                    buffer.delete(index, buffer.length());
+                }
             }
         }
         
         if (line != null)
         {
-            line = cutOffExtra(line);
+            // Work around for Directives
+            line = removeSpacesExtraIfIsSpacesFollowedByDirective(line);
             
-            int indexOfNextPart = line.indexOf("<%");
-            String earlierPartOfLine = line.substring(0, indexOfNextPart);
-            line = line.substring(indexOfNextPart);
+            int indexOfNextOperationStart = line.indexOf(JETConstants.PureTextEnd);
+            String earlierPartOfLine = line.substring(0, indexOfNextOperationStart);
             
+            // Relates to issue #6
+            // Problem is how it will output the part of the line, even if will be adding a blank line due to the special cases
+            // below
             buffer.append(earlierPartOfLine);
             
-            // TODO: Explain the special case
-            // These should be based around ensuring that there are enough lines separating (increase to two)
-            // For when leading into a Code operation only
-            Operation nextOperation = getStartingOperation(line);
+            // Update the line, then get the operation
+            line = line.substring(indexOfNextOperationStart);
+            Operation nextOperation = Operation.getStartingOperation(line);
+            
+            // Handle two different special cases revolving around Operation.Code when there are multiple lines
             if (nextOperation == Operation.Code && previousLine != null) {
+                String generated = buffer.toString();
+                int numNewlines = (generated.length() - generated.replace(Constants.NewLine, "").length()) / Constants.NewLine.length();
                 
-                // If leads into a <%, and there was a bracket on this line, with a blank line and a half, then add new line
-                if (otherHadFunctionEnder && containsOnlySpaces(previousLine) && containsOnlySpaces(earlierPartOfLine)) {
-                    buffer.append(NewLine);
+                // Special case which involves 3 lines at the end of a PureText block:
+                // 1) First line contained a function ender (currently just } or 'end')
+                // 2) Second line contains only spaces
+                // 3) Third line is spaces followed by a Code, Directive, or Expression operation (leads into a <%)
+                //    (since these are only ones that can end a Puretext without being end of file, must be met inside this if)
+                // In this case, JET will add an additional newline when compared to Umple, so need to add it as well
+                if (functionEnderOccuredTwoLinesAgo && containsOnlySpaces(previousLine) && containsOnlySpaces(earlierPartOfLine)) {
+                    buffer.append(Constants.NewLine);
+                }
+                
+                // Special case which involves PureText containing only 3 lines:
+                // 1) First line contained a non-puretext operation
+                // 2) Second line contains only spaces
+                // 3) Third line is spaces followed by a Code, Directive, or Expression operation (leads into a <%)
+                //    (since these are only ones that can end a Puretext without being end of file, must be met inside this if)
+                // In this case, JET will add an additional newline when compared to Umple, so need to add it as well
+                else if (containsOnlySpaces(previousLine) && numNewlines == 2) {
+                    buffer.append(Constants.NewLine);
                 }
             }
             
-            // If there are only two lines, one ending on the previous guy, and they are separated by spaces, then need to add extra.
-                // Occurs in JavaClassGenerator, line 183
-            if (nextOperation == Operation.Code && previousLine != null) {
-                String generated = buffer.toString();
-                int numNewlines = (generated.length() - generated.replace(NewLine, "").length()) / NewLine.length();
-                if (containsOnlySpaces(previousLine) && (previousOp == Operation.Code || previousOp == Operation.Directive || previousOp == Operation.Expression) && numNewlines == 2) {
-                    buffer.append(NewLine);
-                }
-            }
         }
         
         elements.add(new BasicElement(buffer.toString()));
@@ -351,63 +407,33 @@ class TemplateConverter {
         return line == null || line.indexOf(ender) != -1;
     }
     
-    // Should be used to check what specific operation is started on the line.
-    private Operation operationStartingOnLine(String line) {
-        int indexOfStart = line.indexOf("<%");
-        if (indexOfStart != -1) {
-            return getStartingOperation(line.substring(indexOfStart));
-        }
-        
-        return Operation.Text;
-    }
     
-    private Operation getStartingOperation(String line) {
-        if (line.startsWith("<%=")) {
-            return Operation.Expression;
-        } else if (line.startsWith("<%@")) {
-            return Operation.Directive;
-        } else if (line.startsWith("<%")) {
-            return Operation.Code;
-        } else {
-            return Operation.Text;
-        }
-    }
     
     private boolean containsFunctionEnderAtEnd(String line) {
         if (line == null) {
             return false;
         }
         
-        int braceIndex = line.indexOf("}");
-        if (braceIndex != -1) {
-            // Dont care about what is before the brace
-            String braceSubstr = line.substring(braceIndex);
-            if (braceSubstr.trim().equals("}")) {
-                return true;
+        for (String functionEnder : Constants.FunctionEnders) {
+            int index = line.indexOf(functionEnder);
+            if (index != -1) {
+                // Dont care about what is before the brace
+                String startStartingFrom = line.substring(index);
+                if (startStartingFrom.trim().equals(functionEnder)) {
+                    return true;
+                }
             }
-        }
-
-        // For Ruby
-        int endIndex = line.indexOf("end");
-        if (endIndex != -1) {
-            // Dont care about what is before the brace
-            String endSubstr = line.substring(endIndex);
-            if (endSubstr.trim().equals("end")) {
-                return true;
-            }
-            
         }
         
         return false;
     }
     
-    // Hack for include
-    private String cutOffExtra(String line) {
-        // Means has whitespace followed by '<%@'
-        if (line != null && !shouldAppendNewline(line, Operation.Text)) {
-            line = line.substring(line.indexOf("<%@"));
+    // In JET, if a line starts with spaces followed by a directive, the spaces will not be included
+    // Umple will included it however
+    private String removeSpacesExtraIfIsSpacesFollowedByDirective(String line) {
+        if (line != null && isSpacesFollowedByDirective(line)) {
+            line = line.substring(line.indexOf(JETConstants.DirectiveStart));
         }
-        
         return line;
     }
     
@@ -435,16 +461,19 @@ class TemplateConverter {
             return false;
         }
         
-            // Hack
-        int pos = line.indexOf("<%@");
-        
-        for (int i = 0; i < pos; ++i) {
-            if (line.charAt(i) != ' ')
-                return true;
+        // In JET, the newline before a directive will not be included, but Umple will include it
+        // So if the next line is a directive with some spaces before, should not add the newline
+        return !isSpacesFollowedByDirective(line);
+    }
+    
+    // This is used for the directive hack
+    private boolean isSpacesFollowedByDirective(String line) {
+        int pos = line.indexOf(JETConstants.DirectiveStart);
+        if (pos == -1) {
+            return false;
         }
         
-        
-        return pos == -1;
+        return containsOnlySpaces(line.substring(0, pos));
     }
     
     private void printWarning(String warningText) {
